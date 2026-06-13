@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 1 — The Memory Problem</title>
+  <style>
+    :root {
+      --bg: #faf9f7;
+      --fg: #1a1a1a;
+      --muted: #6b6b6b;
+      --accent: #b5451b;
+      --code-bg: #f0ede8;
+      --border: #ddd8d0;
+      --go: #00acd7;
+      --c: #a8b400;
+      --rust: #b5451b;
+      --max: 680px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 18px;
+      line-height: 1.7;
+      padding: 3rem 1.5rem 6rem;
+    }
+
+    .container { max-width: var(--max); margin: 0 auto; }
+
+    .lesson-meta {
+      font-family: system-ui, sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: normal;
+      line-height: 1.25;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 1.05rem;
+      margin-bottom: 3rem;
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      font-weight: bold;
+      font-family: system-ui, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      color: var(--muted);
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-top: 2rem;
+      margin-bottom: 0.6rem;
+    }
+
+    p { margin-bottom: 1.2rem; }
+
+    code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82em;
+      background: var(--code-bg);
+      padding: 0.15em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border-left: 3px solid var(--border);
+      padding: 1.2rem 1.4rem;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    pre.lang-c    { border-left-color: var(--c); }
+    pre.lang-go   { border-left-color: var(--go); }
+    pre.lang-rust { border-left-color: var(--rust); }
+
+    .lang-label {
+      font-family: system-ui, sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: -0.8rem;
+      margin-top: 1.5rem;
+    }
+
+    .lang-label.c    { color: var(--c); }
+    .lang-label.go   { color: var(--go); }
+    .lang-label.rust { color: var(--rust); }
+
+    .callout {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      padding: 1rem 1.2rem;
+      margin: 2rem 0;
+      background: white;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .callout p:last-child { margin-bottom: 0; }
+
+    .callout.key { border-left-color: #2563eb; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.88rem;
+      font-family: system-ui, sans-serif;
+    }
+
+    th {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td { background: #fdfcfa; }
+
+    /* Quiz */
+    .quiz {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.8rem;
+      margin: 2.5rem 0;
+    }
+
+    .quiz h3 {
+      font-family: system-ui, sans-serif;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-question { margin-bottom: 1.8rem; }
+    .quiz-question p { margin-bottom: 0.8rem; font-weight: bold; }
+
+    .options { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .options li label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      cursor: pointer;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.92rem;
+      font-family: system-ui, sans-serif;
+      transition: background 0.1s;
+    }
+
+    .options li label:hover { background: var(--code-bg); }
+
+    .options li input[type="radio"] { margin-top: 0.2rem; flex-shrink: 0; }
+
+    .feedback {
+      display: none;
+      margin-top: 0.6rem;
+      padding: 0.6rem 0.9rem;
+      border-radius: 6px;
+      font-family: system-ui, sans-serif;
+      font-size: 0.88rem;
+    }
+
+    .feedback.correct { background: #dcfce7; color: #166534; }
+    .feedback.wrong   { background: #fee2e2; color: #991b1b; }
+
+    .quiz-submit {
+      display: block;
+      margin-top: 1.5rem;
+      padding: 0.65rem 1.5rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-family: system-ui, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+    }
+
+    .quiz-submit:hover { background: #9b3a18; }
+
+    .score-display {
+      display: none;
+      margin-top: 1rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* Navigation */
+    .nav {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-family: system-ui, sans-serif;
+      font-size: 0.85rem;
+    }
+
+    .nav a { color: var(--accent); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+
+    .ask-teacher {
+      background: #f0f4ff;
+      border: 1px solid #c7d7ff;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin: 3rem 0 1rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.88rem;
+      color: #1e3a8a;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 3rem 0;
+    }
+
+    .primary-source {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin: 2rem 0;
+      font-family: system-ui, sans-serif;
+      font-size: 0.88rem;
+    }
+
+    .primary-source strong { display: block; margin-bottom: 0.3rem; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; }
+
+    .primary-source a { color: var(--fg); font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lesson-meta">Lesson 1 of 9 &nbsp;·&nbsp; Rust Curriculum &nbsp;·&nbsp; Foundation</div>
+
+  <h1>The Memory Problem</h1>
+  <p class="subtitle">Why does ownership exist? What was broken before it?</p>
+
+  <div class="primary-source">
+    <strong>Primary source for this lesson</strong>
+    <a href="https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html">The Rust Book — Ch. 4.1: What Is Ownership?</a>
+    &nbsp;· Read this <em>after</em> the lesson to reinforce with the official framing.
+  </div>
+
+  <h2>The setup</h2>
+
+  <p>Every program needs memory — to store variables, build data structures, pass values between functions. The question every language designer faces is: <strong>who is responsible for that memory, and when does it get freed?</strong></p>
+
+  <p>There are exactly three answers that have seen widespread adoption. You've lived with two of them already.</p>
+
+  <hr>
+
+  <h2>Answer 1: You manage it (C)</h2>
+
+  <p>In C, you call <code>malloc()</code> to ask the OS for memory. When you're done, you call <code>free()</code>. The contract is simple. The execution is brutal.</p>
+
+  <div class="lang-label c">C</div>
+  <pre class="lang-c"><code>char *name = malloc(64);   // ask for 64 bytes
+strcpy(name, "Alice");
+// ... use name ...
+free(name);                // give it back
+
+// What could go wrong?
+printf("%s\n", name);      // USE AFTER FREE — undefined behavior
+free(name);                // DOUBLE FREE — often crashes
+// (or just forget free() entirely — MEMORY LEAK)</code></pre>
+
+  <p>These aren't edge cases. They're the three failure modes that have caused the majority of security vulnerabilities in C programs for 50 years: use-after-free, double-free, and memory leaks. They're hard to catch because the compiler doesn't check them — only the runtime (or a fuzzer, or an attacker) will tell you something went wrong.</p>
+
+  <div class="callout">
+    <p><strong>The C promise:</strong> you have total control, total performance, and total responsibility. The compiler trusts you completely. That trust is frequently misplaced.</p>
+  </div>
+
+  <hr>
+
+  <h2>Answer 2: A runtime manages it (Go)</h2>
+
+  <p>Go takes the opposite philosophy: the programmer shouldn't have to think about memory at all. A garbage collector (GC) runs in the background, tracks which values are still reachable, and frees anything that isn't.</p>
+
+  <div class="lang-label go">Go</div>
+  <pre class="lang-go"><code>name := "Alice"   // allocated — runtime tracks it
+// ... use name ...
+// no free() needed — GC will clean up when name goes out of scope</code></pre>
+
+  <p>This is much safer. You cannot have a use-after-free or double-free in Go. The GC simply won't free memory until nothing points to it.</p>
+
+  <p>But the GC doesn't come free. It has costs:</p>
+
+  <ul style="margin: 0 0 1.2rem 1.5rem; line-height: 2;">
+    <li><strong>Runtime overhead:</strong> the GC is a background program running alongside yours</li>
+    <li><strong>Pause latency:</strong> when the GC runs a collection cycle, your program stops (even briefly)</li>
+    <li><strong>Unpredictability:</strong> you can't control <em>when</em> memory is freed</li>
+    <li><strong>Memory overhead:</strong> the GC needs headroom to work efficiently — programs often use more RAM than their live data requires</li>
+  </ul>
+
+  <p>For most Go programs — web servers, CLIs, tooling — these tradeoffs are completely acceptable. But they make Go unsuitable for certain contexts: real-time systems where a GC pause is catastrophic, embedded systems where you have 32KB of RAM, or kernels where there's no runtime to host the GC.</p>
+
+  <div class="callout">
+    <p><strong>The Go promise:</strong> memory safety by default, at the cost of a runtime and non-deterministic collection. You trade control for safety.</p>
+  </div>
+
+  <hr>
+
+  <h2>Answer 3: The compiler manages it (Rust)</h2>
+
+  <p>Rust's designers asked: <em>what if we could get C's performance and control, and Go's safety — but without a GC?</em></p>
+
+  <p>The answer they found is ownership. Instead of tracking memory at runtime (like Go's GC does), Rust tracks memory <strong>at compile time</strong> through a set of rules. The compiler — not a background thread — knows exactly when every piece of memory will be freed, and inserts the <code>free()</code> calls automatically.</p>
+
+  <p>No GC. No runtime. No pauses. No unsafe manual free. Just rules.</p>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>let name = String::from("Alice");   // allocated
+// ... use name ...
+// name goes out of scope here — Rust inserts the free() at compile time
+// No GC. No malloc/free. Impossible to double-free or use-after-free.</code></pre>
+
+  <p>The catch? The rules are enforced by a compiler component called the <strong>borrow checker</strong>. The borrow checker rejects programs that could cause memory errors — at compile time, before your code ever runs. This is why fighting the borrow checker feels so strange: it's not a test suite catching bugs at runtime, it's a proof system catching them before compilation.</p>
+
+  <div class="callout key">
+    <p><strong>The Rust promise:</strong> memory safety <em>and</em> C-level performance, enforced at compile time by the ownership system. You trade compile-time complexity for freedom from both a GC and manual memory bugs.</p>
+  </div>
+
+  <hr>
+
+  <h2>The three models side by side</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th style="color: var(--c)">C</th>
+        <th style="color: var(--go)">Go</th>
+        <th style="color: var(--rust)">Rust</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Who frees memory?</td>
+        <td>You, manually</td>
+        <td>GC, at runtime</td>
+        <td>Compiler, at compile time</td>
+      </tr>
+      <tr>
+        <td>Use-after-free possible?</td>
+        <td>Yes</td>
+        <td>No</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td>Double-free possible?</td>
+        <td>Yes</td>
+        <td>No</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td>Memory leak possible?</td>
+        <td>Yes</td>
+        <td>Rare (cycle GC handles most)</td>
+        <td>Rare (possible, but not a safety issue)</td>
+      </tr>
+      <tr>
+        <td>Runtime overhead?</td>
+        <td>None</td>
+        <td>GC, ~10–30% real-world</td>
+        <td>None (zero-cost abstractions)</td>
+      </tr>
+      <tr>
+        <td>GC pauses?</td>
+        <td>None</td>
+        <td>Yes (sub-ms, but present)</td>
+        <td>None</td>
+      </tr>
+      <tr>
+        <td>Complexity lives in…</td>
+        <td>Runtime debugging</td>
+        <td>Tuning GC for your workload</td>
+        <td>Satisfying the compiler</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>The one rule that makes it work</h2>
+
+  <p>Rust's whole ownership system flows from one fundamental rule:</p>
+
+  <div class="callout" style="border-left-color: var(--rust); font-size: 1.05rem; text-align: center;">
+    <p><strong>Every value has exactly one owner at a time.</strong></p>
+    <p style="margin-bottom:0; color: var(--muted); font-size: 0.9rem;">When the owner goes out of scope, the value is freed. Automatically. Unconditionally.</p>
+  </div>
+
+  <p>That's it. That single invariant is enough for the compiler to know <em>exactly</em> when to insert the <code>free()</code>. No double-frees (only one owner can free it). No use-after-free (the value is freed when the owner dies — you can't use a dead owner). No GC needed (the compiler sees all the scopes statically).</p>
+
+  <p>The next lessons will unpack what "owner" means, what happens when you move or copy a value, and how borrowing lets you temporarily share access without transferring ownership. But every one of those rules exists to protect this single invariant.</p>
+
+  <div class="callout">
+    <p><strong>Why the borrow checker feels alien:</strong> In Go, the compiler lets you do almost anything with values — the GC sorts it out. In C, the compiler doesn't check memory at all. Rust is the first language where the compiler has a strong opinion about <em>who is allowed to access a value and when</em>. It's not being difficult. It's enforcing a proof.</p>
+  </div>
+
+  <hr>
+
+  <h2>Quiz — check your understanding</h2>
+
+  <div class="quiz" id="quiz">
+    <h3>5 questions · no looking back</h3>
+
+    <!-- Q1 -->
+    <div class="quiz-question" id="q1">
+      <p>1. In C, calling <code>free(ptr)</code> and then using <code>ptr</code> afterward is called what?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q1" value="a"> a dangling reference</label></li>
+        <li><label><input type="radio" name="q1" value="b"> a use-after-free error</label></li>
+        <li><label><input type="radio" name="q1" value="c"> a memory leak violation</label></li>
+        <li><label><input type="radio" name="q1" value="d"> a double-free error</label></li>
+      </ul>
+      <div class="feedback correct" id="q1-correct">Correct. Use-after-free: you freed the memory, then tried to read it. The pointer is now "dangling" — it points to freed memory that could be reused for anything.</div>
+      <div class="feedback wrong" id="q1-wrong">Not quite. Using freed memory is called use-after-free. A double-free is calling free() twice on the same pointer. A memory leak is forgetting to free at all.</div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="quiz-question" id="q2">
+      <p>2. Go's garbage collector prevents use-after-free errors. What does it cost?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q2" value="a"> compile-time complexity and borrow rules</label></li>
+        <li><label><input type="radio" name="q2" value="b"> manual free() calls at every scope exit</label></li>
+        <li><label><input type="radio" name="q2" value="c"> runtime overhead and non-deterministic collection pauses</label></li>
+        <li><label><input type="radio" name="q2" value="d"> static lifetime annotations on all variables</label></li>
+      </ul>
+      <div class="feedback correct" id="q2-correct">Correct. The GC is a runtime program that adds overhead and periodically pauses your code to scan for unreachable memory. Safe, but not free.</div>
+      <div class="feedback wrong" id="q2-wrong">That's Rust's cost (compile-time complexity), not Go's. Go's tradeoff is runtime overhead: a background GC that adds memory and CPU cost, and occasional pause latency.</div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="quiz-question" id="q3">
+      <p>3. Rust inserts <code>free()</code> calls with no runtime GC. How does it know when to free?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q3" value="a"> a reference-count at runtime tracks live pointers</label></li>
+        <li><label><input type="radio" name="q3" value="b"> the programmer calls drop() explicitly like free()</label></li>
+        <li><label><input type="radio" name="q3" value="c"> the compiler tracks ownership statically and inserts frees at scope exit</label></li>
+        <li><label><input type="radio" name="q3" value="d"> the OS reclaims memory when the process exits</label></li>
+      </ul>
+      <div class="feedback correct" id="q3-correct">Correct. Ownership is a compile-time concept. The borrow checker proves at compile time when each value's owner goes out of scope, and the compiler inserts the free there — no runtime tracking needed.</div>
+      <div class="feedback wrong" id="q3-wrong">Reference counting (Rc/Arc) is one Rust pattern, but it's not how basic ownership works. The core mechanism is compile-time: the compiler statically knows when each owner leaves scope and inserts the free there.</div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="quiz-question" id="q4">
+      <p>4. "Every value has exactly one owner at a time." What memory error does this rule directly prevent?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q4" value="a"> stack overflow from deep recursion</label></li>
+        <li><label><input type="radio" name="q4" value="b"> double-free — only one owner can trigger the free</label></li>
+        <li><label><input type="radio" name="q4" value="c"> null pointer dereference from uninitialized pointers</label></li>
+        <li><label><input type="radio" name="q4" value="d"> integer overflow from unchecked arithmetic</label></li>
+      </ul>
+      <div class="feedback correct" id="q4-correct">Correct. If only one entity owns a value, only that entity can free it — making double-free structurally impossible. Use-after-free is prevented by a different rule (the value is freed when the owner dies, and the compiler won't let you use a dead owner).</div>
+      <div class="feedback wrong" id="q4-wrong">The single-owner rule most directly prevents double-free: if only one thing owns the memory, it can only be freed once. Stack overflow and null pointers are separate concerns.</div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="quiz-question" id="q5">
+      <p>5. Why does the Rust borrow checker feel unlike anything in Go or C?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q5" value="a"> it runs at runtime and throws panics instead of compile errors</label></li>
+        <li><label><input type="radio" name="q5" value="b"> it's the first widely-used compiler that enforces who can access a value and when</label></li>
+        <li><label><input type="radio" name="q5" value="c"> it requires explicit type annotations on every variable</label></li>
+        <li><label><input type="radio" name="q5" value="d"> it rejects all pointer arithmetic, unlike C</label></li>
+      </ul>
+      <div class="feedback correct" id="q5-correct">Correct. In C the compiler doesn't check memory access at all; in Go the GC handles it at runtime. Rust is the first mainstream language where the compiler itself has strong, statically-enforced rules about value access — which is exactly why it feels foreign at first.</div>
+      <div class="feedback wrong" id="q5-wrong">The key distinction is that the borrow checker is a compile-time proof system about value access — something neither C nor Go's compiler does. C doesn't check memory; Go delegates it to a runtime GC.</div>
+    </div>
+
+    <button class="quiz-submit" onclick="submitQuiz()">Check answers</button>
+    <div class="score-display" id="score"></div>
+  </div>
+
+  <hr>
+
+  <h2>What's next</h2>
+
+  <p>You now have the mental model for <em>why</em> ownership exists. Next lesson: <strong>the three ownership rules</strong> — what "owner" actually means in Rust code, what happens when a value moves, and the distinction between <code>Copy</code> types (like integers) and heap-allocated types (like <code>String</code>) that trips up almost every newcomer from Go.</p>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher directly in the chat. Anything unclear — a comparison that didn't land, a term that felt vague, a follow-up you're curious about — just ask. That's how this curriculum adapts to you.
+  </div>
+
+  <div class="nav">
+    <span style="color: var(--muted)">← (first lesson)</span>
+    <a href="0002-ownership-rules.html">Lesson 2: Ownership Rules →</a>
+  </div>
+
+</div>
+
+<script>
+  const answers = { q1: 'b', q2: 'c', q3: 'c', q4: 'b', q5: 'b' };
+
+  function submitQuiz() {
+    let score = 0;
+    const total = Object.keys(answers).length;
+
+    for (const [q, correct] of Object.entries(answers)) {
+      const selected = document.querySelector(`input[name="${q}"]:checked`);
+      const correctEl = document.getElementById(`${q}-correct`);
+      const wrongEl = document.getElementById(`${q}-wrong`);
+      correctEl.style.display = 'none';
+      wrongEl.style.display = 'none';
+
+      if (!selected) continue;
+
+      if (selected.value === correct) {
+        score++;
+        correctEl.style.display = 'block';
+      } else {
+        wrongEl.style.display = 'block';
+      }
+    }
+
+    const scoreEl = document.getElementById('score');
+    scoreEl.style.display = 'block';
+    scoreEl.textContent = `${score} / ${total} correct`;
+    if (score === total) {
+      scoreEl.textContent += ' — perfect. You\'re ready for Lesson 2.';
+      scoreEl.style.color = '#166534';
+    } else if (score >= 3) {
+      scoreEl.textContent += ' — good. Re-read the explanations for the ones you missed.';
+    } else {
+      scoreEl.textContent += ' — re-read the lesson before moving on.';
+      scoreEl.style.color = '#991b1b';
+    }
+  }
+</script>
+</body>
+</html>
