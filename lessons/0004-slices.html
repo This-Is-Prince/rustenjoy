@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 4 — Slices</title>
+  <style>
+    :root {
+      --bg: #faf9f7; --fg: #1a1a1a; --muted: #6b6b6b;
+      --accent: #b5451b; --code-bg: #f0ede8; --border: #ddd8d0;
+      --go: #00acd7; --c: #a8b400; --rust: #b5451b; --max: 680px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      background: var(--bg); color: var(--fg);
+      font-size: 18px; line-height: 1.7; padding: 3rem 1.5rem 6rem;
+    }
+    .container { max-width: var(--max); margin: 0 auto; }
+    .lesson-meta {
+      font-family: system-ui, sans-serif; font-size: 0.75rem;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2.5rem;
+    }
+    h1 { font-size: 2rem; font-weight: normal; line-height: 1.25; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-style: italic; font-size: 1.05rem; margin-bottom: 3rem; }
+    h2 {
+      font-size: 1.05rem; font-weight: bold; font-family: system-ui, sans-serif;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-top: 3rem; margin-bottom: 1rem; color: var(--muted);
+    }
+    h3 { font-size: 1.1rem; font-weight: bold; margin-top: 2rem; margin-bottom: 0.6rem; }
+    p { margin-bottom: 1.2rem; }
+    ul, ol { margin: 0 0 1.2rem 1.5rem; line-height: 2; }
+    code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82em; background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px;
+    }
+    pre {
+      background: var(--code-bg); border-left: 3px solid var(--border);
+      padding: 1.2rem 1.4rem; overflow-x: auto; margin: 1.5rem 0; border-radius: 0 4px 4px 0;
+    }
+    pre code { background: none; padding: 0; font-size: 0.85rem; line-height: 1.65; }
+    pre.lang-c    { border-left-color: var(--c); }
+    pre.lang-go   { border-left-color: var(--go); }
+    pre.lang-rust { border-left-color: var(--rust); }
+    pre.lang-err  { border-left-color: #e53e3e; }
+    .lang-label {
+      font-family: system-ui, sans-serif; font-size: 0.65rem;
+      letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+      margin-bottom: -0.8rem; margin-top: 1.5rem;
+    }
+    .lang-label.c    { color: var(--c); }
+    .lang-label.go   { color: var(--go); }
+    .lang-label.rust { color: var(--rust); }
+    .lang-label.err  { color: #e53e3e; }
+    .callout {
+      border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      padding: 1rem 1.2rem; margin: 2rem 0; background: white; border-radius: 0 6px 6px 0;
+    }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout.key  { border-left-color: #2563eb; }
+    .callout.warn { border-left-color: #d97706; background: #fffbeb; }
+    .callout.safe { border-left-color: #16a34a; background: #f0fdf4; }
+
+    .mem-diagram {
+      background: var(--code-bg); border-radius: 6px; padding: 1.4rem 1.6rem;
+      margin: 1.5rem 0; font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.8rem; line-height: 2; overflow-x: auto;
+    }
+    .ptr  { color: #2563eb; font-weight: bold; }
+    .heap { color: var(--rust); font-weight: bold; }
+    .dim  { color: #aaa; }
+    .ok   { color: #166534; }
+    .bad  { color: #e53e3e; }
+
+    table {
+      width: 100%; border-collapse: collapse; margin: 1.5rem 0;
+      font-size: 0.88rem; font-family: system-ui, sans-serif;
+    }
+    th { background: var(--code-bg); border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; }
+    td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; vertical-align: top; }
+    tr:nth-child(even) td { background: #fdfcfa; }
+
+    .quiz {
+      background: white; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.8rem; margin: 2.5rem 0;
+    }
+    .quiz h3 {
+      font-family: system-ui, sans-serif; font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent);
+      margin-top: 0; margin-bottom: 1rem;
+    }
+    .quiz-question { margin-bottom: 2rem; }
+    .quiz-question p { margin-bottom: 0.8rem; font-weight: bold; }
+    .options { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .options li label {
+      display: flex; align-items: flex-start; gap: 0.7rem; cursor: pointer;
+      padding: 0.6rem 0.9rem; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.92rem; font-family: system-ui, sans-serif; transition: background 0.1s;
+    }
+    .options li label:hover { background: var(--code-bg); }
+    .options li input[type="radio"] { margin-top: 0.2rem; flex-shrink: 0; }
+    .feedback {
+      display: none; margin-top: 0.6rem; padding: 0.7rem 0.9rem; border-radius: 6px;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; line-height: 1.5;
+    }
+    .feedback.correct { background: #dcfce7; color: #166534; }
+    .feedback.wrong   { background: #fee2e2; color: #991b1b; }
+    .quiz-submit {
+      display: block; margin-top: 1rem; padding: 0.65rem 1.5rem;
+      background: var(--accent); color: white; border: none; border-radius: 6px;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    }
+    .quiz-submit:hover { background: #9b3a18; }
+    .score-display {
+      display: none; margin-top: 1rem;
+      font-family: system-ui, sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--accent);
+    }
+    .nav {
+      margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+      font-family: system-ui, sans-serif; font-size: 0.85rem;
+    }
+    .nav a { color: var(--accent); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    .ask-teacher {
+      background: #f0f4ff; border: 1px solid #c7d7ff; border-radius: 8px;
+      padding: 1rem 1.2rem; margin: 3rem 0 1rem;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; color: #1e3a8a;
+    }
+    hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+    .primary-source {
+      background: white; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem 1.2rem; margin: 2rem 0;
+      font-family: system-ui, sans-serif; font-size: 0.88rem;
+    }
+    .primary-source strong { display: block; margin-bottom: 0.3rem; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .primary-source a { color: var(--fg); font-weight: 600; }
+
+    .range-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 1rem 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace; font-size: 0.84rem;
+    }
+    .range-grid > div {
+      background: var(--code-bg); border-radius: 5px; padding: 0.5rem 0.8rem; line-height: 1.6;
+    }
+    .range-grid .label {
+      font-family: system-ui, sans-serif; font-size: 0.65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); display: block; margin-bottom: 0.2rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lesson-meta">Lesson 4 of 9 &nbsp;·&nbsp; Rust Curriculum &nbsp;·&nbsp; Ownership</div>
+
+  <h1>Slices</h1>
+  <p class="subtitle">Borrowed views into collections — and the <code>&amp;str</code> vs <code>String</code> split that confuses everyone</p>
+
+  <div class="primary-source">
+    <strong>Primary source for this lesson</strong>
+    <a href="https://doc.rust-lang.org/book/ch04-03-slices.html">The Rust Book — Ch. 4.3: The Slice Type</a>
+    &nbsp;· This lesson follows the same motivating example as the book (first word in a string). Read after.
+  </div>
+
+  <h2>What is a slice?</h2>
+
+  <p>A slice is a <strong>reference to a contiguous subsequence of a collection</strong> — part of a string, part of a vector, part of an array — without copying the data and without taking ownership. Slices are references. Everything you learned about borrowing applies to them.</p>
+
+  <p>There are two slice types you'll use constantly:</p>
+  <ul>
+    <li><code>&amp;str</code> — a string slice (view into UTF-8 string data)</li>
+    <li><code>&amp;[T]</code> — a slice of any type T (view into an array or Vec)</li>
+  </ul>
+
+  <p>The <code>&amp;</code> is not decoration — it's telling you what a slice <em>is</em>: a borrow. A slice cannot outlive the collection it came from. The borrow checker enforces this.</p>
+
+  <hr>
+
+  <h2>The motivating problem — without slices</h2>
+
+  <p>Say you want to find the first word in a string. Without slices, you might return an index:</p>
+
+  <div class="lang-label rust">Rust — index approach (fragile)</div>
+  <pre class="lang-rust"><code>fn first_word_index(s: &String) -> usize {
+    let bytes = s.as_bytes();
+    for (i, &byte) in bytes.iter().enumerate() {
+        if byte == b' ' {
+            return i;   // index of first space
+        }
+    }
+    s.len()
+}
+
+fn main() {
+    let mut s = String::from("hello world");
+    let word_end = first_word_index(&s);    // word_end = 5
+
+    s.clear();          // s is now ""
+    // word_end is still 5 — but it refers to nothing meaningful now
+    // No compile error. Silent bug.
+}</code></pre>
+
+  <p>The index becomes stale the moment the string changes. The compiler can't see the connection between the index and the string — they're separate values.</p>
+
+  <p>Slices fix this by returning a reference tied to the original string. If the string changes while the slice is active, the borrow checker rejects it at compile time.</p>
+
+  <div class="lang-label rust">Rust — slice approach (borrow-checked)</div>
+  <pre class="lang-rust"><code>fn first_word(s: &str) -> &str {
+    let bytes = s.as_bytes();
+    for (i, &byte) in bytes.iter().enumerate() {
+        if byte == b' ' {
+            return &s[..i];   // slice: 0 up to i
+        }
+    }
+    &s[..]   // whole string
+}
+
+fn main() {
+    let mut s = String::from("hello world");
+    let word = first_word(&s);   // word borrows s
+
+    s.clear();                   // ✗ COMPILE ERROR
+                                 // s.clear() needs &mut s
+                                 // but word holds &s — aliasing rule violation
+    println!("{}", word);
+}</code></pre>
+
+  <p>The bug that was invisible with an index is now a compile error. The slice carries the borrow — the compiler knows <code>word</code> is reading from <code>s</code>, so it won't let you mutate <code>s</code> while <code>word</code> is alive.</p>
+
+  <hr>
+
+  <h2>Slice syntax</h2>
+
+  <p>A slice is written as <code>&amp;collection[start..end]</code> where <code>start</code> is inclusive and <code>end</code> is exclusive (same convention as Go's <code>s[1:3]</code>).</p>
+
+  <div class="range-grid">
+    <div><span class="label">From start to 5</span><code>&amp;s[..5]</code> or <code>&amp;s[0..5]</code></div>
+    <div><span class="label">From 6 to end</span><code>&amp;s[6..]</code> or <code>&amp;s[6..s.len()]</code></div>
+    <div><span class="label">From 2 to 5 (exclusive)</span><code>&amp;s[2..5]</code> → chars at 2, 3, 4</div>
+    <div><span class="label">Whole string</span><code>&amp;s[..]</code> — equivalent to <code>&amp;s</code></div>
+  </div>
+
+  <div class="callout warn">
+    <p><strong>UTF-8 caution:</strong> string slice indices are <em>byte</em> offsets, not character offsets. Slicing in the middle of a multibyte character panics at runtime. For ASCII strings (most CLI input) this is a non-issue. For arbitrary Unicode, use <code>.char_indices()</code> to find safe boundaries.</p>
+  </div>
+
+  <hr>
+
+  <h2>What a slice looks like in memory</h2>
+
+  <p>A slice is a "fat pointer" — it stores two words on the stack: a pointer to the start of the data, and a length. No heap allocation. No copy.</p>
+
+  <div class="mem-diagram">
+<span class="dim">// String: owns heap data</span>
+s (String)
+  <span class="ptr">ptr</span>  ──→ <span class="heap">[ h | e | l | l | o |   | w | o | r | l | d ]</span>
+  len:  11
+  cap:  11
+
+<span class="dim">// &amp;str slice: fat pointer into the same heap data</span>
+word (&amp;str)                              <span class="dim">// = &amp;s[..5]</span>
+  <span class="ptr">ptr</span>  ──→ <span class="heap">[ h | e | l | l | o ]</span>  <span class="dim">↑ same memory, no copy</span>
+  len:  5
+  </div>
+
+  <p>This is the same pattern Go uses for slice headers (<code>ptr + len + cap</code>), except Rust string slices don't carry a capacity because they're immutable views. The cost of passing a <code>&amp;str</code> is passing two machine words — as cheap as it gets.</p>
+
+  <hr>
+
+  <h2><code>String</code> vs <code>&amp;str</code> — the one distinction that trips everyone up</h2>
+
+  <p>This is the most common confusion for developers new to Rust. Here it is directly:</p>
+
+  <table>
+    <thead>
+      <tr><th></th><th><code>String</code></th><th><code>&amp;str</code></th></tr>
+    </thead>
+    <tbody>
+      <tr><td>What it is</td><td>Owned, heap-allocated, growable string</td><td>Borrowed view into string data (any string data)</td></tr>
+      <tr><td>Owns memory?</td><td>Yes — freed when it goes out of scope</td><td>No — just a pointer + length</td></tr>
+      <tr><td>Can grow?</td><td>Yes — <code>.push_str()</code>, <code>.push()</code></td><td>No — read-only view</td></tr>
+      <tr><td>Created how?</td><td><code>String::from("x")</code>, <code>"x".to_string()</code>, <code>format!()</code></td><td><code>"hello"</code> (literal), <code>&amp;some_string</code>, <code>&amp;some_string[..]</code></td></tr>
+      <tr><td>Lives where?</td><td>Heap (data), Stack (metadata)</td><td>Stack only (ptr+len pointing elsewhere)</td></tr>
+      <tr><td>Go analogy</td><td><code>[]byte</code> you own</td><td>Go's <code>string</code> type (immutable view)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>String literals are <code>&amp;str</code></h3>
+
+  <p>This surprises many people. When you write <code>"hello"</code> in Rust source code, the type is <code>&amp;str</code> — not <code>String</code>. The bytes are compiled into the binary itself (the data segment), and the literal is a slice pointing into that static memory.</p>
+
+  <div class="lang-label rust">Rust — literal type</div>
+  <pre class="lang-rust"><code>let s: &str = "hello";    // &'static str — lives in the binary, forever
+                           // no heap allocation
+
+let s: String = String::from("hello");  // heap allocation — owned copy
+let s: String = "hello".to_string();    // same thing, different syntax</code></pre>
+
+  <h3>The right function signature</h3>
+
+  <p>If your function only needs to read a string, take <code>&amp;str</code>, not <code>&amp;String</code>. A <code>&amp;str</code> accepts both a <code>&amp;String</code> and a string literal — it's more flexible. A <code>&amp;String</code> only accepts a <code>&amp;String</code>.</p>
+
+  <div class="lang-label rust">Rust — prefer &amp;str in function signatures</div>
+  <pre class="lang-rust"><code>// Less flexible — only accepts &String
+fn greet_bad(name: &String) { println!("Hello, {name}"); }
+
+// More flexible — accepts both &String and &str literals
+fn greet(name: &str) { println!("Hello, {name}"); }
+
+fn main() {
+    let owned = String::from("Alice");
+    greet(&owned);         // &String coerces to &str automatically
+    greet("Bob");          // string literal — already &str
+}</code></pre>
+
+  <div class="callout key">
+    <p><strong>Rule of thumb:</strong> use <code>String</code> when you need to own or grow a string. Use <code>&amp;str</code> when you just need to read one. This maps well to Go: <code>String</code> ≈ <code>[]byte</code> (mutable, owned), <code>&amp;str</code> ≈ Go's <code>string</code> (immutable view).</p>
+  </div>
+
+  <hr>
+
+  <h2>Array and Vec slices — <code>&amp;[T]</code></h2>
+
+  <p>The same concept applies to arrays and <code>Vec</code>. A <code>&amp;[T]</code> is a borrowed view into a contiguous sequence of <code>T</code> values.</p>
+
+  <div class="lang-label rust">Rust — array and Vec slices</div>
+  <pre class="lang-rust"><code>let a = [1, 2, 3, 4, 5];           // array, lives on the stack
+let slice: &[i32] = &a[1..3];      // slice: [2, 3], no copy
+println!("{:?}", slice);            // [2, 3]
+
+let v = vec![10, 20, 30, 40];      // Vec, lives on the heap
+let chunk: &[i32] = &v[..2];       // slice: [10, 20]
+println!("{:?}", chunk);            // [10, 20]</code></pre>
+
+  <p>The same aliasing rule applies: if you hold a <code>&amp;[T]</code> slice into a <code>Vec</code>, you cannot mutate the <code>Vec</code> while the slice is alive — because the Vec might reallocate, dangling the slice. You saw this in Lesson 3 with <code>v.push()</code>.</p>
+
+  <h3>Functions that take slices are more generic</h3>
+
+  <div class="lang-label rust">Rust — &amp;[T] accepts arrays and Vecs</div>
+  <pre class="lang-rust"><code>fn sum(values: &[i32]) -> i32 {
+    values.iter().sum()
+}
+
+let arr = [1, 2, 3];
+let vec = vec![4, 5, 6];
+
+sum(&arr);     // array reference coerces to &[i32]
+sum(&vec);     // Vec reference coerces to &[i32]</code></pre>
+
+  <div class="callout safe">
+    <p><strong>The pattern:</strong> just as <code>&amp;str</code> is the flexible version of <code>&amp;String</code>, <code>&amp;[T]</code> is the flexible version of <code>&amp;Vec&lt;T&gt;</code>. Prefer slices in function parameters for maximum flexibility.</p>
+  </div>
+
+  <hr>
+
+  <h2>Slices as the bridge to lifetimes</h2>
+
+  <p>Look at the function signature from earlier:</p>
+
+  <pre class="lang-rust"><code>fn first_word(s: &str) -> &str { ... }</code></pre>
+
+  <p>The compiler is asking: the returned <code>&amp;str</code> — how long is it valid? The answer seems obvious: as long as <code>s</code> is valid. And in this case, the compiler can figure that out on its own (it uses a rule called <em>lifetime elision</em>). But sometimes it can't. When the compiler needs help, you annotate lifetimes explicitly:</p>
+
+  <pre class="lang-rust"><code>fn first_word<'a>(s: &'a str) -> &'a str { ... }</code></pre>
+
+  <p>Read this as: "for some lifetime <code>'a</code>, I take a <code>&amp;str</code> valid for <code>'a</code> and return a <code>&amp;str</code> also valid for <code>'a</code>." That's Lesson 5. Slices are where lifetimes first become visible in real code.</p>
+
+  <hr>
+
+  <h2>Quiz — no looking back</h2>
+
+  <div class="quiz">
+    <h3>6 questions</h3>
+
+    <!-- Q1 -->
+    <div class="quiz-question">
+      <p>1. What does a <code>&amp;str</code> slice actually store on the stack?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q1" value="a"> a copy of the string's bytes</label></li>
+        <li><label><input type="radio" name="q1" value="b"> a pointer to the data plus the length</label></li>
+        <li><label><input type="radio" name="q1" value="c"> a pointer, length, and capacity (like a Vec)</label></li>
+        <li><label><input type="radio" name="q1" value="d"> only the length — the pointer is in a global table</label></li>
+      </ul>
+      <div class="feedback correct" id="q1-correct">Correct. A &amp;str is a "fat pointer": two machine words — a pointer to the start of the UTF-8 data, and the length in bytes. No capacity, because slices are read-only views (they can't grow).</div>
+      <div class="feedback wrong" id="q1-wrong">A &amp;str is a fat pointer: pointer + length. No capacity field (that's String's job — slices can't grow, so capacity is irrelevant). No copy of the data — just a reference into existing memory.</div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="quiz-question">
+      <p>2. What is the type of the literal <code>"hello"</code> in Rust?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q2" value="a"> <code>String</code></label></li>
+        <li><label><input type="radio" name="q2" value="b"> <code>&amp;String</code></label></li>
+        <li><label><input type="radio" name="q2" value="c"> <code>&amp;str</code></label></li>
+        <li><label><input type="radio" name="q2" value="d"> <code>[u8; 5]</code></label></li>
+      </ul>
+      <div class="feedback correct" id="q2-correct">Correct. String literals are &amp;'static str — a slice pointing to bytes baked into the compiled binary. No heap allocation happens. You need String::from("hello") or "hello".to_string() to get an owned, heap-allocated String.</div>
+      <div class="feedback wrong" id="q2-wrong">String literals have type &amp;str (specifically &amp;'static str — they live in the binary). They are not String — no heap allocation happens. You need String::from("hello") to get an owned String.</div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="quiz-question">
+      <p>3. Why should function parameters prefer <code>&amp;str</code> over <code>&amp;String</code>?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q3" value="a"> &amp;str is faster because it avoids the heap</label></li>
+        <li><label><input type="radio" name="q3" value="b"> &amp;str accepts both string literals and &amp;String — &amp;String only accepts &amp;String</label></li>
+        <li><label><input type="radio" name="q3" value="c"> &amp;String is not a valid type in Rust</label></li>
+        <li><label><input type="radio" name="q3" value="d"> &amp;str allows you to modify the string inside the function</label></li>
+      </ul>
+      <div class="feedback correct" id="q3-correct">Correct. A &amp;String automatically coerces to &amp;str (Deref coercion), so &amp;str accepts both. &amp;String only accepts an explicit reference to a String. Taking &amp;str makes your function callable with literals, slices, and owned strings alike — more composable with no cost.</div>
+      <div class="feedback wrong" id="q3-wrong">&amp;str is more flexible: a &amp;String coerces to &amp;str automatically (via Deref), so any &amp;String works as &amp;str. But &amp;String doesn't accept string literals or arbitrary &amp;str slices. Prefer &amp;str in function signatures for maximum flexibility.</div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="quiz-question">
+      <p>4. You hold a <code>&amp;[i32]</code> slice into a <code>Vec&lt;i32&gt;</code>. You try to push to the Vec. What happens?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q4" value="a"> the push succeeds and the slice automatically updates to reflect the new length</label></li>
+        <li><label><input type="radio" name="q4" value="b"> the push panics at runtime if the Vec reallocates</label></li>
+        <li><label><input type="radio" name="q4" value="c"> compile error — the slice holds a shared borrow of the Vec; push requires a mutable borrow</label></li>
+        <li><label><input type="radio" name="q4" value="d"> the push is silently ignored while the slice is active</label></li>
+      </ul>
+      <div class="feedback correct" id="q4-correct">Correct. The slice borrows the Vec immutably. push() needs a mutable borrow. Aliasing rule violation — compile error. The real danger it prevents: if push() reallocates the Vec's buffer, the slice would be a dangling pointer. The borrow checker catches the rule violation before the memory corruption.</div>
+      <div class="feedback wrong" id="q4-wrong">Compile error. The &amp;[i32] slice holds a shared borrow of the Vec. push() needs a mutable borrow — aliasing rule violation. The deeper danger: push() might reallocate, dangling the slice. Rust rejects this at compile time.</div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="quiz-question">
+      <p>5. <code>String</code> is to <code>&amp;str</code> as <code>Vec&lt;T&gt;</code> is to…?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q5" value="a"> <code>Box&lt;T&gt;</code></label></li>
+        <li><label><input type="radio" name="q5" value="b"> <code>&amp;mut T</code></label></li>
+        <li><label><input type="radio" name="q5" value="c"> <code>&amp;[T]</code></label></li>
+        <li><label><input type="radio" name="q5" value="d"> <code>[T; N]</code></label></li>
+      </ul>
+      <div class="feedback correct" id="q5-correct">Correct. Vec&lt;T&gt; is an owned, growable collection. &amp;[T] is a borrowed, read-only view into any contiguous T sequence — just as &amp;str is a borrowed view into any string data. Prefer &amp;[T] in function parameters for the same reason you prefer &amp;str over &amp;String.</div>
+      <div class="feedback wrong" id="q5-wrong">&amp;[T] is the answer. Vec&lt;T&gt; : &amp;[T&gt;] follows the exact same owned-vs-borrowed relationship as String : &amp;str. &amp;[T] is a borrowed, read-only view into a contiguous sequence of T — it accepts &amp;Vec&lt;T&gt; and &amp;[T; N] alike.</div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="quiz-question">
+      <p>6. Why does returning a <code>&amp;str</code> from a function sometimes require a lifetime annotation?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q6" value="a"> all references require lifetime annotations — the compiler never infers them</label></li>
+        <li><label><input type="radio" name="q6" value="b"> when there are multiple input references, the compiler can't automatically tell which one the returned slice came from</label></li>
+        <li><label><input type="radio" name="q6" value="c"> lifetime annotations are only needed for mutable references</label></li>
+        <li><label><input type="radio" name="q6" value="d"> the compiler always requires annotations — elision is just a warning suppressor</label></li>
+      </ul>
+      <div class="feedback correct" id="q6-correct">Correct. When a function has one reference input, the compiler applies elision rules and figures out the lifetime. When there are multiple input references and the output is a reference, the compiler can't tell which input the output came from — so you annotate it explicitly. That's what Lesson 5 is about.</div>
+      <div class="feedback wrong" id="q6-wrong">With one input reference, the compiler infers the lifetime via elision rules. With multiple input references and a reference return, the compiler can't determine which input the returned reference came from — so you must annotate. Lifetime annotations are the topic of Lesson 5.</div>
+    </div>
+
+    <button class="quiz-submit" onclick="submitQuiz()">Check answers</button>
+    <div class="score-display" id="score"></div>
+  </div>
+
+  <hr>
+
+  <h2>What's next</h2>
+
+  <p>You've seen slices introduce a natural question: <em>how long is this reference valid?</em> The compiler answers it silently in simple cases (one input reference → output reference) but needs your help when the situation is ambiguous. Lesson 5 names that concept — <strong>lifetimes</strong> — and shows you the annotation syntax that makes the compiler's implicit reasoning explicit. This is the last piece of the ownership puzzle.</p>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher in the chat. The <code>String</code> vs <code>&amp;str</code> divide is worth talking through if it still feels fuzzy — it's one of those things that suddenly clicks, and I can help it click faster.
+  </div>
+
+  <div class="nav">
+    <a href="0003-borrowing.html">← Lesson 3: Borrowing</a>
+    <a href="0005-lifetimes.html">Lesson 5: Lifetimes →</a>
+  </div>
+
+</div>
+
+<script>
+  const answers = { q1:'b', q2:'c', q3:'b', q4:'c', q5:'c', q6:'b' };
+  function submitQuiz() {
+    let score = 0;
+    const total = Object.keys(answers).length;
+    for (const [q, correct] of Object.entries(answers)) {
+      const sel = document.querySelector(`input[name="${q}"]:checked`);
+      const ok  = document.getElementById(`${q}-correct`);
+      const bad = document.getElementById(`${q}-wrong`);
+      if (ok)  ok.style.display  = 'none';
+      if (bad) bad.style.display = 'none';
+      if (!sel) continue;
+      if (sel.value === correct) { score++; if (ok)  ok.style.display  = 'block'; }
+      else                       {          if (bad) bad.style.display = 'block'; }
+    }
+    const el = document.getElementById('score');
+    el.style.display = 'block';
+    if (score === total) {
+      el.textContent = `${score} / ${total} — perfect. On to lifetimes.`;
+      el.style.color = '#166534';
+    } else if (score >= 4) {
+      el.textContent = `${score} / ${total} — solid. Re-read the explanations for what you missed.`;
+    } else {
+      el.textContent = `${score} / ${total} — re-read the lesson before moving on, especially &str vs String.`;
+      el.style.color = '#991b1b';
+    }
+  }
+</script>
+</body>
+</html>
