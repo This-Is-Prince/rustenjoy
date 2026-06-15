@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 2 — Ownership Rules</title>
+  <style>
+    :root {
+      --bg: #faf9f7;
+      --fg: #1a1a1a;
+      --muted: #6b6b6b;
+      --accent: #b5451b;
+      --code-bg: #f0ede8;
+      --border: #ddd8d0;
+      --go: #00acd7;
+      --c: #a8b400;
+      --rust: #b5451b;
+      --max: 680px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 18px;
+      line-height: 1.7;
+      padding: 3rem 1.5rem 6rem;
+    }
+    .container { max-width: var(--max); margin: 0 auto; }
+    .lesson-meta {
+      font-family: system-ui, sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+    }
+    h1 { font-size: 2rem; font-weight: normal; line-height: 1.25; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-style: italic; font-size: 1.05rem; margin-bottom: 3rem; }
+    h2 {
+      font-size: 1.05rem;
+      font-weight: bold;
+      font-family: system-ui, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      color: var(--muted);
+    }
+    h3 { font-size: 1.1rem; font-weight: bold; margin-top: 2rem; margin-bottom: 0.6rem; }
+    p { margin-bottom: 1.2rem; }
+    ul, ol { margin: 0 0 1.2rem 1.5rem; line-height: 2; }
+    code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82em;
+      background: var(--code-bg);
+      padding: 0.15em 0.4em;
+      border-radius: 3px;
+    }
+    pre {
+      background: var(--code-bg);
+      border-left: 3px solid var(--border);
+      padding: 1.2rem 1.4rem;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+    pre code { background: none; padding: 0; font-size: 0.85rem; line-height: 1.65; }
+    pre.lang-c    { border-left-color: var(--c); }
+    pre.lang-go   { border-left-color: var(--go); }
+    pre.lang-rust { border-left-color: var(--rust); }
+    pre.lang-rust-err { border-left-color: #e53e3e; }
+    .lang-label {
+      font-family: system-ui, sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: -0.8rem;
+      margin-top: 1.5rem;
+    }
+    .lang-label.c    { color: var(--c); }
+    .lang-label.go   { color: var(--go); }
+    .lang-label.rust { color: var(--rust); }
+    .lang-label.err  { color: #e53e3e; }
+    .callout {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      padding: 1rem 1.2rem;
+      margin: 2rem 0;
+      background: white;
+      border-radius: 0 6px 6px 0;
+    }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout.key   { border-left-color: #2563eb; }
+    .callout.rule  { border-left-color: var(--rust); background: #fff8f6; }
+    .callout.warn  { border-left-color: #d97706; background: #fffbeb; }
+    .three-rules {
+      border: 2px solid var(--rust);
+      border-radius: 8px;
+      padding: 1.4rem 1.6rem;
+      margin: 2rem 0;
+      background: #fff8f6;
+    }
+    .three-rules h3 {
+      font-family: system-ui, sans-serif;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--rust);
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+    .three-rules ol { margin-left: 1.2rem; line-height: 1; }
+    .three-rules li { margin-bottom: 0.9rem; font-size: 1rem; }
+    .three-rules li strong { display: block; }
+    .three-rules li span { font-size: 0.88rem; color: var(--muted); font-family: system-ui, sans-serif; }
+
+    /* diagram */
+    .diagram {
+      background: var(--code-bg);
+      border-radius: 6px;
+      padding: 1.2rem 1.4rem;
+      margin: 1.5rem 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .moved { color: #999; text-decoration: line-through; }
+    .owner { color: var(--rust); font-weight: bold; }
+    .ok { color: #166534; }
+    .err-inline { color: #e53e3e; }
+
+    /* quiz */
+    .quiz {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.8rem;
+      margin: 2.5rem 0;
+    }
+    .quiz h3 {
+      font-family: system-ui, sans-serif;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+    .quiz-question { margin-bottom: 2rem; }
+    .quiz-question p { margin-bottom: 0.8rem; font-weight: bold; }
+    .options { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .options li label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      cursor: pointer;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.92rem;
+      font-family: system-ui, sans-serif;
+      transition: background 0.1s;
+    }
+    .options li label:hover { background: var(--code-bg); }
+    .options li input[type="radio"] { margin-top: 0.2rem; flex-shrink: 0; }
+    .feedback {
+      display: none;
+      margin-top: 0.6rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: 6px;
+      font-family: system-ui, sans-serif;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    .feedback.correct { background: #dcfce7; color: #166534; }
+    .feedback.wrong   { background: #fee2e2; color: #991b1b; }
+    .quiz-submit {
+      display: block;
+      margin-top: 1rem;
+      padding: 0.65rem 1.5rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-family: system-ui, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .quiz-submit:hover { background: #9b3a18; }
+    .score-display {
+      display: none;
+      margin-top: 1rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .nav {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-family: system-ui, sans-serif;
+      font-size: 0.85rem;
+    }
+    .nav a { color: var(--accent); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    .ask-teacher {
+      background: #f0f4ff;
+      border: 1px solid #c7d7ff;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin: 3rem 0 1rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.88rem;
+      color: #1e3a8a;
+    }
+    hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+    .primary-source {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin: 2rem 0;
+      font-family: system-ui, sans-serif;
+      font-size: 0.88rem;
+    }
+    .primary-source strong { display: block; margin-bottom: 0.3rem; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .primary-source a { color: var(--fg); font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.88rem; font-family: system-ui, sans-serif; }
+    th { background: var(--code-bg); border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; }
+    td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; vertical-align: top; }
+    tr:nth-child(even) td { background: #fdfcfa; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lesson-meta">Lesson 2 of 9 &nbsp;·&nbsp; Rust Curriculum &nbsp;·&nbsp; Ownership</div>
+
+  <h1>Ownership Rules</h1>
+  <p class="subtitle">What "owner" means in code, move semantics, and the Copy/Clone divide</p>
+
+  <div class="primary-source">
+    <strong>Primary source for this lesson</strong>
+    <a href="https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html">The Rust Book — Ch. 4.1: What Is Ownership?</a>
+    &nbsp;· Read (or re-read) after this lesson — the book covers this same ground with runnable playground links.
+  </div>
+
+  <h2>The three rules</h2>
+
+  <p>Last lesson established the <em>why</em>. Now the <em>what</em>. Rust's entire ownership system is built on exactly three rules. Everything else — borrowing, lifetimes, smart pointers — is just these rules playing out in more complex situations.</p>
+
+  <div class="three-rules">
+    <h3>Rust Ownership Rules</h3>
+    <ol>
+      <li>
+        <strong>Each value in Rust has an owner.</strong>
+        <span>Every piece of data is "owned" by exactly one variable, struct field, or data structure.</span>
+      </li>
+      <li>
+        <strong>There can only be one owner at a time.</strong>
+        <span>Ownership is exclusive — you can't have two owners. This is what prevents double-free.</span>
+      </li>
+      <li>
+        <strong>When the owner goes out of scope, the value is dropped.</strong>
+        <span>"Dropped" = freed. The compiler inserts the free() at the closing brace of the owner's scope.</span>
+      </li>
+    </ol>
+  </div>
+
+  <p>These three sentences are the entire mental model. Let's watch them play out in code.</p>
+
+  <hr>
+
+  <h2>Scope — the simplest case</h2>
+
+  <p>A value is created when its owner is declared. It's dropped when the owner's scope ends.</p>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>{
+    let s = String::from("hello");   // s owns the String
+    //   ↑ allocated here, s is the owner
+
+    // ... use s ...
+
+}   // ← s goes out of scope here
+    //   Rust calls drop(s) — the memory is freed
+    //   This is where the compiler inserts the free()</code></pre>
+
+  <p>If you know C, this is exactly a <code>free()</code> at the closing brace, inserted automatically. If you know Go, the memory would stay alive until the next GC cycle. In Rust, it's deterministic: freed at the <em>exact point</em> the scope closes, no runtime involvement.</p>
+
+  <hr>
+
+  <h2>Move semantics — the part that surprises Go developers</h2>
+
+  <p>In Go, assigning a value copies it (for value types) or copies the pointer (for reference types). Either way, both variables are usable after the assignment. In Rust, assigning a heap-allocated value <strong>moves</strong> ownership. The original variable is invalidated.</p>
+
+  <div class="lang-label go">Go — this works fine</div>
+  <pre class="lang-go"><code>s1 := "hello"
+s2 := s1        // copy of the string header; both are valid
+fmt.Println(s1) // ✓ works
+fmt.Println(s2) // ✓ works</code></pre>
+
+  <div class="lang-label err">Rust — this is a compile error</div>
+  <pre class="lang-rust-err"><code>let s1 = String::from("hello");
+let s2 = s1;          // ownership MOVES from s1 to s2
+                      // s1 is now invalidated
+println!("{}", s1);   // ✗ ERROR: value borrowed after move
+println!("{}", s2);   // ✓ fine — s2 is the owner now</code></pre>
+
+  <p>This is the thing that shocks people coming from Go. Why? Because Rust is protecting Rule 2: only one owner at a time. If both <code>s1</code> and <code>s2</code> owned the same heap data, they'd both try to free it when they go out of scope — a double-free. So Rust makes ownership exclusive by invalidating the source.</p>
+
+  <div class="diagram">
+<span class="ok">let s1 = String::from("hello");</span>
+  s1 ──→ [ heap: "hello" ]    <span class="ok">// s1 owns it</span>
+
+<span class="ok">let s2 = s1;  // MOVE</span>
+  <span class="moved">s1</span>            [ heap: "hello" ]    <span class="err-inline">// s1: invalidated</span>
+  <span class="owner">s2</span> ──────────────────→ ↑             <span class="ok">// s2 owns it now</span>
+  </div>
+
+  <p>The heap data doesn't move — the <em>ownership</em> does. Rust didn't copy the string; it transferred the title deed.</p>
+
+  <div class="callout warn">
+    <p><strong>The C comparison:</strong> in C, you could copy a pointer and have two pointers to the same memory. Rust's move makes that illegal for owned values — because if both were owners, both would free the memory. Move semantics are Rust saying "I'll only let one variable hold the title."</p>
+  </div>
+
+  <hr>
+
+  <h2>Moves through functions</h2>
+
+  <p>Passing a value into a function is a move. Returning a value from a function is also a move. This surprises most people the first time.</p>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>fn greet(name: String) {           // name takes ownership of the String
+    println!("Hello, {}!", name);
+}   // name goes out of scope here — String is dropped
+
+fn main() {
+    let s = String::from("Alice");
+    greet(s);                      // s is MOVED into greet
+    println!("{}", s);             // ✗ ERROR: s was moved
+}</code></pre>
+
+  <p>Coming from Go this feels brutal — in Go you just pass the string, use it, and it's fine. But remember what Rust is preventing: two things trying to free the same memory. The function took ownership, so <em>it</em> will free the String when it returns. The caller can no longer touch it.</p>
+
+  <p>If you want to keep using <code>s</code> after the call, you have two options. The first (which you shouldn't reach for by default) is to return ownership back:</p>
+
+  <div class="lang-label rust">Rust — return ownership back (awkward, but valid)</div>
+  <pre class="lang-rust"><code>fn greet(name: String) -> String {  // takes and returns ownership
+    println!("Hello, {}!", name);
+    name                            // moves ownership back to caller
+}
+
+fn main() {
+    let s = String::from("Alice");
+    let s = greet(s);              // s is moved in, then moved back out
+    println!("{}", s);             // ✓ fine now
+}</code></pre>
+
+  <p>This is the "right problem, wrong solution." The real solution is <strong>borrowing</strong> — which is Lesson 3. For now, just understand that functions participate in the ownership system exactly like variable assignments do.</p>
+
+  <hr>
+
+  <h2>Copy types — the exception to the rule</h2>
+
+  <p>If every assignment moved ownership, using integers would be unbearable. Rust has an escape hatch: the <code>Copy</code> trait.</p>
+
+  <p>Types that implement <code>Copy</code> are duplicated on assignment — no move, no invalidation — because they live entirely on the <strong>stack</strong> and are cheap to copy.</p>
+
+  <table>
+    <thead>
+      <tr><th>Copy types (assignment copies)</th><th>Non-Copy types (assignment moves)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>i32</code>, <code>u64</code>, <code>f64</code>, all numeric types</td><td><code>String</code></td></tr>
+      <tr><td><code>bool</code></td><td><code>Vec&lt;T&gt;</code></td></tr>
+      <tr><td><code>char</code></td><td><code>Box&lt;T&gt;</code></td></tr>
+      <tr><td>Tuples/arrays of Copy types: <code>(i32, bool)</code></td><td>Any type that owns heap memory</td></tr>
+      <tr><td><code>&amp;T</code> (shared references)</td><td>Most custom structs (unless you derive Copy)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="lang-label rust">Rust — Copy type: no move</div>
+  <pre class="lang-rust"><code>let x = 5;        // i32 — Copy type
+let y = x;        // x is COPIED, not moved
+println!("{}", x); // ✓ x is still valid
+println!("{}", y); // ✓ y has an independent copy</code></pre>
+
+  <div class="lang-label rust">Rust — non-Copy type: moves</div>
+  <pre class="lang-rust"><code>let s1 = String::from("hi");  // String — non-Copy (owns heap data)
+let s2 = s1;                  // s1 is MOVED, not copied
+// println!("{}", s1);        // ✗ would error — s1 moved</code></pre>
+
+  <div class="callout key">
+    <p><strong>The heuristic:</strong> if a type owns data on the heap, it's non-Copy. If it lives entirely on the stack with a known, fixed size, it's probably Copy. The reason: copying a stack integer is trivially cheap (just copy the bytes). Copying a <code>String</code> means allocating new heap memory and copying the contents — a non-trivial operation that Rust won't do silently.</p>
+  </div>
+
+  <hr>
+
+  <h2>Explicit deep copy: <code>clone()</code></h2>
+
+  <p>If you actually need two independent owned copies of a heap value, ask for it explicitly with <code>.clone()</code>. Rust won't do it silently because it's not cheap.</p>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>let s1 = String::from("hello");
+let s2 = s1.clone();          // explicitly deep copies the heap data
+
+println!("{}", s1);           // ✓ s1 still valid — it wasn't moved
+println!("{}", s2);           // ✓ s2 has its own independent copy</code></pre>
+
+  <div class="callout warn">
+    <p><strong>Go comparison:</strong> In Go, <code>strings.Clone(s)</code> exists but you rarely need it because strings are immutable and the runtime handles sharing. In Rust, <code>clone()</code> is visible and deliberate — it's a signal in code that says "yes, I know I'm allocating here." This aligns with Rust's philosophy: no hidden allocations.</p>
+  </div>
+
+  <hr>
+
+  <h2>The drop function</h2>
+
+  <p>When an owner goes out of scope, Rust calls its <code>drop()</code> method automatically. You can call it manually to free early — useful for releasing a file handle, lock, or connection before the scope ends.</p>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>let s = String::from("hello");
+drop(s);                  // freed early — s is now gone
+// println!("{}", s);     // ✗ would error: s was moved into drop()</code></pre>
+
+  <p>You'll rarely call <code>drop()</code> manually. It's here so you know: "drop" is the word Rust uses for "the owner left, free the memory."</p>
+
+  <hr>
+
+  <h2>Putting it together — reading a compile error</h2>
+
+  <p>When the borrow checker rejects your code, it's almost always enforcing one of these three rules. Here's how to read the error:</p>
+
+  <div class="lang-label err">Rust compiler error</div>
+  <pre class="lang-rust-err"><code>error[E0382]: borrow of moved value: `s1`
+  --> src/main.rs:4:20
+   |
+2  |     let s1 = String::from("hello");
+   |         -- move occurs because `s1` has type `String`
+3  |     let s2 = s1;
+   |              -- value moved here
+4  |     println!("{}", s1);
+   |                    ^^ value borrowed here after move</code></pre>
+
+  <p>Translate this: "you moved <code>s1</code> on line 3 (ownership transferred to <code>s2</code>), so on line 4, <code>s1</code> no longer owns anything. I won't let you use it." The fix is either: don't use <code>s1</code> after the move, use <code>clone()</code> on line 2, or — lesson 3 — use a reference instead of moving at all.</p>
+
+  <hr>
+
+  <h2>Quiz — no looking back</h2>
+
+  <div class="quiz" id="quiz">
+    <h3>6 questions</h3>
+
+    <!-- Q1 -->
+    <div class="quiz-question">
+      <p>1. After <code>let s2 = s1;</code> where <code>s1</code> is a <code>String</code>, what happens to <code>s1</code>?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q1" value="a"> s1 is set to an empty String</label></li>
+        <li><label><input type="radio" name="q1" value="b"> s1 and s2 both own the heap data</label></li>
+        <li><label><input type="radio" name="q1" value="c"> s1 is invalidated — ownership moved to s2</label></li>
+        <li><label><input type="radio" name="q1" value="d"> s1 is deep-copied and both remain valid</label></li>
+      </ul>
+      <div class="feedback correct" id="q1-correct">Correct. Assigning a non-Copy type moves ownership. s1 is invalidated — the compiler will reject any subsequent use of it. s2 is now the sole owner.</div>
+      <div class="feedback wrong" id="q1-wrong">Not quite. Assignment of a non-Copy type is a move, not a copy or a share. s1 is invalidated after the move — neither empty nor co-owner. Use .clone() if you need two independent copies.</div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="quiz-question">
+      <p>2. Which of these types uses <code>Copy</code> semantics on assignment?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q2" value="a"> <code>String</code></label></li>
+        <li><label><input type="radio" name="q2" value="b"> <code>Vec&lt;i32&gt;</code></label></li>
+        <li><label><input type="radio" name="q2" value="c"> <code>i32</code></label></li>
+        <li><label><input type="radio" name="q2" value="d"> <code>Box&lt;str&gt;</code></label></li>
+      </ul>
+      <div class="feedback correct" id="q2-correct">Correct. i32 is a fixed-size stack value — trivially cheap to copy. All numeric primitives, bool, and char are Copy. Types that own heap memory (String, Vec, Box) are non-Copy.</div>
+      <div class="feedback wrong" id="q2-wrong">String, Vec, and Box all own heap memory — they use move semantics. i32 is a fixed-size stack integer, trivially copyable, and implements the Copy trait.</div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="quiz-question">
+      <p>3. What does <code>s.clone()</code> do differently from a plain assignment?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q3" value="a"> it moves ownership to a new variable and invalidates s</label></li>
+        <li><label><input type="radio" name="q3" value="b"> it creates a deep copy of the heap data, leaving s valid</label></li>
+        <li><label><input type="radio" name="q3" value="c"> it creates a second pointer to the same heap data</label></li>
+        <li><label><input type="radio" name="q3" value="d"> it is identical to assignment for all types</label></li>
+      </ul>
+      <div class="feedback correct" id="q3-correct">Correct. clone() allocates new heap memory and copies the contents into it — s keeps its own copy, the result is an independent new copy. This is why Rust requires you to call it explicitly: it's not free.</div>
+      <div class="feedback wrong" id="q3-wrong">clone() performs a deep copy: it allocates new heap memory and copies the data. s remains the owner of the original. The result is a fully independent copy. Plain assignment moves (transfers the title without copying data).</div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="quiz-question">
+      <p>4. You pass a <code>String</code> to a function. After the call returns, can you use the original variable?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q4" value="a"> yes — functions always copy their arguments</label></li>
+        <li><label><input type="radio" name="q4" value="b"> yes — the function has its own scope so the original is unaffected</label></li>
+        <li><label><input type="radio" name="q4" value="c"> no — the String was moved into the function and dropped when the function returned</label></li>
+        <li><label><input type="radio" name="q4" value="d"> only if the function returns a bool</label></li>
+      </ul>
+      <div class="feedback correct" id="q4-correct">Correct. Passing to a function is a move. The function owns the String, and when the function's scope ends, it's dropped. The caller can no longer use the original. The proper fix is borrowing (Lesson 3) — passing a reference instead of ownership.</div>
+      <div class="feedback wrong" id="q4-wrong">Passing a String to a function moves ownership into the function. The function owns it, and when the function returns (and its scope closes), the String is dropped. The caller's variable is invalidated. The right fix is a reference — covered in Lesson 3.</div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="quiz-question">
+      <p>5. Rule 2 says only one owner at a time. What specific memory bug does this directly prevent?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q4" value="a"> null pointer dereferences</label></li>
+        <li><label><input type="radio" name="q5" value="b"> double-free errors</label></li>
+        <li><label><input type="radio" name="q5" value="c"> stack overflows from recursion</label></li>
+        <li><label><input type="radio" name="q5" value="d"> integer overflow</label></li>
+      </ul>
+      <div class="feedback correct" id="q5-correct">Correct. If two owners existed for the same value, both would try to free it when their scopes ended — a double-free. Single ownership means single free, always.</div>
+      <div class="feedback wrong" id="q5-wrong">Single ownership prevents double-free: if only one variable can own the data, only one scope can trigger the free. Stack overflows, null pointers, and integer overflow are separate concerns.</div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="quiz-question">
+      <p>6. When exactly does Rust free (drop) a value?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q6" value="a"> when the garbage collector runs its next cycle</label></li>
+        <li><label><input type="radio" name="q6" value="b"> when the program exits</label></li>
+        <li><label><input type="radio" name="q6" value="c"> when the programmer calls free() or delete</label></li>
+        <li><label><input type="radio" name="q6" value="d"> when the owner goes out of scope — determined at compile time</label></li>
+      </ul>
+      <div class="feedback correct" id="q6-correct">Correct. Drop timing is static and deterministic: the compiler knows the owner's scope at compile time, and inserts the free at the closing brace. No GC, no explicit call, no runtime tracking — pure compile-time analysis.</div>
+      <div class="feedback wrong" id="q6-wrong">Rust has no GC and no explicit free(). Drop timing is determined at compile time: the compiler inserts the free at the closing brace of the owner's scope. This is what makes Rust memory management both safe and zero-cost.</div>
+    </div>
+
+    <button class="quiz-submit" onclick="submitQuiz()">Check answers</button>
+    <div class="score-display" id="score"></div>
+  </div>
+
+  <hr>
+
+  <h2>What's next</h2>
+
+  <p>You now understand ownership and move semantics — including why functions are so greedy. But the problem is obvious: if every function call consumed your data, writing programs would be a nightmare of clones and return-ownership chains.</p>
+
+  <p>The solution is <strong>borrowing</strong>: giving a function temporary access to a value <em>without</em> transferring ownership. That's Lesson 3 — and it's where the borrow checker's real personality comes out.</p>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher in the chat. If the move semantics felt confusing compared to Go, or you want a deeper look at how Copy works — just ask.
+  </div>
+
+  <div class="nav">
+    <a href="0001-the-memory-problem.html">← Lesson 1: The Memory Problem</a>
+    <a href="0003-borrowing.html">Lesson 3: Borrowing →</a>
+  </div>
+
+</div>
+
+<script>
+  const answers = { q1: 'c', q2: 'c', q3: 'b', q4: 'c', q5: 'b', q6: 'd' };
+
+  function submitQuiz() {
+    let score = 0;
+    const total = Object.keys(answers).length;
+
+    for (const [q, correct] of Object.entries(answers)) {
+      const selected = document.querySelector(`input[name="${q}"]:checked`);
+      const correctEl = document.getElementById(`${q}-correct`);
+      const wrongEl   = document.getElementById(`${q}-wrong`);
+      if (correctEl) correctEl.style.display = 'none';
+      if (wrongEl)   wrongEl.style.display   = 'none';
+      if (!selected) continue;
+      if (selected.value === correct) {
+        score++;
+        if (correctEl) correctEl.style.display = 'block';
+      } else {
+        if (wrongEl) wrongEl.style.display = 'block';
+      }
+    }
+
+    const scoreEl = document.getElementById('score');
+    scoreEl.style.display = 'block';
+    if (score === total) {
+      scoreEl.textContent = `${score} / ${total} — perfect. On to borrowing.`;
+      scoreEl.style.color = '#166534';
+    } else if (score >= 4) {
+      scoreEl.textContent = `${score} / ${total} — solid. Re-read the explanations for what you missed.`;
+    } else {
+      scoreEl.textContent = `${score} / ${total} — re-read the lesson before moving on.`;
+      scoreEl.style.color = '#991b1b';
+    }
+  }
+</script>
+</body>
+</html>

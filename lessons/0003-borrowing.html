@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 3 — Borrowing</title>
+  <style>
+    :root {
+      --bg: #faf9f7;
+      --fg: #1a1a1a;
+      --muted: #6b6b6b;
+      --accent: #b5451b;
+      --code-bg: #f0ede8;
+      --border: #ddd8d0;
+      --go: #00acd7;
+      --c: #a8b400;
+      --rust: #b5451b;
+      --max: 680px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 18px;
+      line-height: 1.7;
+      padding: 3rem 1.5rem 6rem;
+    }
+    .container { max-width: var(--max); margin: 0 auto; }
+    .lesson-meta {
+      font-family: system-ui, sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+    }
+    h1 { font-size: 2rem; font-weight: normal; line-height: 1.25; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-style: italic; font-size: 1.05rem; margin-bottom: 3rem; }
+    h2 {
+      font-size: 1.05rem; font-weight: bold;
+      font-family: system-ui, sans-serif;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-top: 3rem; margin-bottom: 1rem; color: var(--muted);
+    }
+    h3 { font-size: 1.1rem; font-weight: bold; margin-top: 2rem; margin-bottom: 0.6rem; }
+    p { margin-bottom: 1.2rem; }
+    ul, ol { margin: 0 0 1.2rem 1.5rem; line-height: 2; }
+    code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82em; background: var(--code-bg);
+      padding: 0.15em 0.4em; border-radius: 3px;
+    }
+    pre {
+      background: var(--code-bg);
+      border-left: 3px solid var(--border);
+      padding: 1.2rem 1.4rem; overflow-x: auto;
+      margin: 1.5rem 0; border-radius: 0 4px 4px 0;
+    }
+    pre code { background: none; padding: 0; font-size: 0.85rem; line-height: 1.65; }
+    pre.lang-c    { border-left-color: var(--c); }
+    pre.lang-go   { border-left-color: var(--go); }
+    pre.lang-rust { border-left-color: var(--rust); }
+    pre.lang-err  { border-left-color: #e53e3e; }
+    .lang-label {
+      font-family: system-ui, sans-serif; font-size: 0.65rem;
+      letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+      margin-bottom: -0.8rem; margin-top: 1.5rem;
+    }
+    .lang-label.c    { color: var(--c); }
+    .lang-label.go   { color: var(--go); }
+    .lang-label.rust { color: var(--rust); }
+    .lang-label.err  { color: #e53e3e; }
+    .callout {
+      border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      padding: 1rem 1.2rem; margin: 2rem 0; background: white; border-radius: 0 6px 6px 0;
+    }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout.key  { border-left-color: #2563eb; }
+    .callout.warn { border-left-color: #d97706; background: #fffbeb; }
+    .callout.safe { border-left-color: #16a34a; background: #f0fdf4; }
+
+    .rule-box {
+      border: 2px solid var(--rust); border-radius: 8px;
+      padding: 1.4rem 1.6rem; margin: 2rem 0; background: #fff8f6;
+      font-family: system-ui, sans-serif;
+    }
+    .rule-box h3 {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--rust); margin-top: 0; margin-bottom: 1rem;
+    }
+    .rule-box ul { margin: 0 0 0 1.2rem; line-height: 1; }
+    .rule-box li { margin-bottom: 0.9rem; }
+    .rule-box li strong { display: block; font-size: 1rem; }
+    .rule-box li span { font-size: 0.88rem; color: var(--muted); }
+
+    .diagram {
+      background: var(--code-bg); border-radius: 6px;
+      padding: 1.2rem 1.4rem; margin: 1.5rem 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82rem; line-height: 1.9; overflow-x: auto;
+    }
+    .ok    { color: #166534; }
+    .bad   { color: #e53e3e; }
+    .owner { color: var(--rust); font-weight: bold; }
+    .ref   { color: #2563eb; }
+
+    .two-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0;
+    }
+    .two-col > div {
+      background: var(--code-bg); border-radius: 6px; padding: 1rem;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace; font-size: 0.8rem; line-height: 1.7;
+    }
+    .two-col > div .label {
+      font-family: system-ui, sans-serif; font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .two-col > div .label.ok  { color: #16a34a; }
+    .two-col > div .label.bad { color: #e53e3e; }
+
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.88rem; font-family: system-ui, sans-serif; }
+    th { background: var(--code-bg); border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; }
+    td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; vertical-align: top; }
+    tr:nth-child(even) td { background: #fdfcfa; }
+
+    .quiz {
+      background: white; border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.8rem; margin: 2.5rem 0;
+    }
+    .quiz h3 {
+      font-family: system-ui, sans-serif; font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--accent); margin-top: 0; margin-bottom: 1rem;
+    }
+    .quiz-question { margin-bottom: 2rem; }
+    .quiz-question p { margin-bottom: 0.8rem; font-weight: bold; }
+    .options { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .options li label {
+      display: flex; align-items: flex-start; gap: 0.7rem; cursor: pointer;
+      padding: 0.6rem 0.9rem; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.92rem; font-family: system-ui, sans-serif; transition: background 0.1s;
+    }
+    .options li label:hover { background: var(--code-bg); }
+    .options li input[type="radio"] { margin-top: 0.2rem; flex-shrink: 0; }
+    .feedback {
+      display: none; margin-top: 0.6rem; padding: 0.7rem 0.9rem;
+      border-radius: 6px; font-family: system-ui, sans-serif;
+      font-size: 0.88rem; line-height: 1.5;
+    }
+    .feedback.correct { background: #dcfce7; color: #166534; }
+    .feedback.wrong   { background: #fee2e2; color: #991b1b; }
+    .quiz-submit {
+      display: block; margin-top: 1rem; padding: 0.65rem 1.5rem;
+      background: var(--accent); color: white; border: none; border-radius: 6px;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    }
+    .quiz-submit:hover { background: #9b3a18; }
+    .score-display {
+      display: none; margin-top: 1rem;
+      font-family: system-ui, sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--accent);
+    }
+    .nav {
+      margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+      font-family: system-ui, sans-serif; font-size: 0.85rem;
+    }
+    .nav a { color: var(--accent); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    .ask-teacher {
+      background: #f0f4ff; border: 1px solid #c7d7ff; border-radius: 8px;
+      padding: 1rem 1.2rem; margin: 3rem 0 1rem;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; color: #1e3a8a;
+    }
+    hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+    .primary-source {
+      background: white; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem 1.2rem; margin: 2rem 0;
+      font-family: system-ui, sans-serif; font-size: 0.88rem;
+    }
+    .primary-source strong { display: block; margin-bottom: 0.3rem; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .primary-source a { color: var(--fg); font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lesson-meta">Lesson 3 of 9 &nbsp;·&nbsp; Rust Curriculum &nbsp;·&nbsp; Ownership</div>
+
+  <h1>Borrowing</h1>
+  <p class="subtitle">Temporary access without transferring ownership — and the aliasing rule that makes it safe</p>
+
+  <div class="primary-source">
+    <strong>Primary source for this lesson</strong>
+    <a href="https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html">The Rust Book — Ch. 4.2: References and Borrowing</a>
+    &nbsp;· Read after the lesson. The book has runnable Playground examples for every rule here.
+  </div>
+
+  <h2>The problem borrowing solves</h2>
+
+  <p>End of Lesson 2, you were stuck: passing a <code>String</code> to a function moved it, and you couldn't use it afterward. The only fix was to clone (allocate) or return ownership back (awkward). Neither is acceptable as the default.</p>
+
+  <p>What you actually want is to <em>lend</em> the function access — let it read or write the value — without giving up ownership. That's borrowing. A borrowed value is accessed through a <strong>reference</strong>, written with <code>&amp;</code>.</p>
+
+  <div class="lang-label rust">Rust — borrow instead of move</div>
+  <pre class="lang-rust"><code>fn print_len(s: &String) {          // takes a reference, not ownership
+    println!("length: {}", s.len());
+}   // s (the reference) goes out of scope here — the String is NOT dropped
+    // because this function never owned it
+
+fn main() {
+    let owned = String::from("hello");
+    print_len(&owned);              // lend a reference
+    println!("{}", owned);          // ✓ still valid — we never moved it
+}</code></pre>
+
+  <p>The <code>&amp;</code> in <code>&amp;String</code> says "a reference to a String" — not the String itself. The function borrows access; ownership stays with <code>owned</code> in <code>main</code>. When the function returns, the borrow ends. The String is not dropped.</p>
+
+  <div class="callout key">
+    <p><strong>Mental model:</strong> a reference is like handing someone your house key. They can get in, but they don't own the house. When they give the key back (the borrow ends), you still own the house. Rust tracks who holds your key at compile time.</p>
+  </div>
+
+  <hr>
+
+  <h2>Two kinds of reference</h2>
+
+  <p>Rust has exactly two kinds of reference, and they have fundamentally different rules.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Shared reference <code>&amp;T</code></th>
+        <th>Mutable reference <code>&amp;mut T</code></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Syntax</td>
+        <td><code>&amp;value</code> / <code>&amp;T</code></td>
+        <td><code>&amp;mut value</code> / <code>&amp;mut T</code></td>
+      </tr>
+      <tr>
+        <td>Can read?</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>Can write?</td>
+        <td>No</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>How many at once?</td>
+        <td>Unlimited</td>
+        <td>Exactly one</td>
+      </tr>
+      <tr>
+        <td>Can coexist with <code>&amp;mut</code>?</td>
+        <td>No</td>
+        <td>No</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="lang-label rust">Rust — shared reference (read-only)</div>
+  <pre class="lang-rust"><code>let s = String::from("hello");
+
+let r1 = &s;    // shared borrow
+let r2 = &s;    // another shared borrow — fine, unlimited readers
+
+println!("{} and {}", r1, r2);  // ✓ both valid simultaneously</code></pre>
+
+  <div class="lang-label rust">Rust — mutable reference (read+write)</div>
+  <pre class="lang-rust"><code>let mut s = String::from("hello");   // note: variable must be `mut`
+
+let r = &mut s;                      // mutable borrow
+r.push_str(", world");               // ✓ can modify through the reference
+println!("{}", r);                   // ✓ prints "hello, world"</code></pre>
+
+  <hr>
+
+  <h2>The aliasing rule — the heart of the borrow checker</h2>
+
+  <p>The single most important rule in Rust's reference system:</p>
+
+  <div class="rule-box">
+    <h3>The Aliasing Rule</h3>
+    <ul>
+      <li>
+        <strong>Many shared references, OR one mutable reference.</strong>
+        <span>At any given point in time, you can have either multiple &amp;T borrows, or exactly one &amp;mut T borrow — but never both simultaneously.</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="label ok">✓ Legal — many readers</div>
+      <code>let r1 = &amp;s;<br>let r2 = &amp;s;<br>// both active — fine</code>
+    </div>
+    <div>
+      <div class="label bad">✗ Illegal — reader + writer</div>
+      <code>let r1 = &amp;s;<br>let r2 = &amp;mut s;<br>// compile error</code>
+    </div>
+  </div>
+
+  <div class="lang-label err">Rust — borrow checker rejects this</div>
+  <pre class="lang-err"><code>let mut s = String::from("hello");
+
+let r1 = &s;          // shared borrow starts
+let r2 = &mut s;      // ✗ ERROR: cannot borrow `s` as mutable
+                      //   because it is also borrowed as immutable
+println!("{}", r1);</code></pre>
+
+  <p>Why? What's the actual danger? Two things:</p>
+
+  <h3>Danger 1: Data races</h3>
+
+  <p>A data race happens when two things access the same memory concurrently and at least one writes. In Go, the race detector catches this at runtime. In Rust, the aliasing rule prevents it at compile time — you literally cannot express a data race in safe Rust, because you can never have a writer active at the same time as any reader.</p>
+
+  <div class="lang-label go">Go — race detector catches this at runtime</div>
+  <pre class="lang-go"><code>// Go has no compile-time protection; needs -race flag at runtime
+go func() { s = "modified" }()   // writer
+go func() { fmt.Println(s) }()   // reader — race!</code></pre>
+
+  <div class="lang-label rust">Rust — prevented at compile time</div>
+  <pre class="lang-rust"><code>// In safe Rust, this class of bug cannot be expressed:
+// You cannot have &mut s and &s active simultaneously — ever.
+// The borrow checker enforces this even in single-threaded code.</code></pre>
+
+  <h3>Danger 2: Iterator invalidation</h3>
+
+  <p>This is the bug that C++ developers know intimately. If you're iterating over a vector and something modifies that vector (adds or removes elements, causing a reallocation), your iterator is now pointing at freed or moved memory.</p>
+
+  <div class="lang-label c">C — undefined behavior</div>
+  <pre class="lang-c"><code>// Classic C++ invalidation (analogous):
+for (auto it = vec.begin(); it != vec.end(); ++it) {
+    vec.push_back(42);  // reallocates — it is now a dangling pointer
+    // reading *it is undefined behavior
+}</code></pre>
+
+  <div class="lang-label rust">Rust — compile error, not UB</div>
+  <pre class="lang-err"><code>let mut v = vec![1, 2, 3];
+let first = &v[0];       // shared borrow of v
+v.push(4);               // ✗ ERROR: cannot borrow `v` as mutable
+                         //   because it is also borrowed as immutable
+println!("{}", first);   // first could be dangling after the push</code></pre>
+
+  <p>The aliasing rule made this a compile error instead of a segfault. Rust looked at the code and said: you hold a reader (<code>first</code> borrows <code>v</code>) and you're trying to write (<code>v.push()</code>). That violates the rule. Rejected.</p>
+
+  <div class="callout safe">
+    <p><strong>The payoff:</strong> every bug shown above — data races, iterator invalidation — is caught by the borrow checker before your code compiles. You get C-level performance with none of these failure modes. This is what "fearless concurrency" means in Rust's marketing.</p>
+  </div>
+
+  <hr>
+
+  <h2>Borrow scopes — Non-Lexical Lifetimes (NLL)</h2>
+
+  <p>A borrow ends when the reference is <em>last used</em>, not at the closing brace of its declaration scope. This is called Non-Lexical Lifetimes (NLL), and it means borrows are often shorter than you'd expect. Modern Rust (2018 edition onward) handles this for you.</p>
+
+  <div class="lang-label rust">Rust — borrows end at last use, not at closing brace</div>
+  <pre class="lang-rust"><code>let mut s = String::from("hello");
+
+let r1 = &s;
+let r2 = &s;
+println!("{} and {}", r1, r2);
+// r1 and r2 are last used on the line above
+// their borrows END here, before the mutable borrow below
+
+let r3 = &mut s;           // ✓ fine — r1 and r2 are no longer active
+r3.push_str(", world");
+println!("{}", r3);</code></pre>
+
+  <p>You don't need to think about this too hard — the compiler manages it. But it explains why some code that looks like it should fail actually compiles fine.</p>
+
+  <hr>
+
+  <h2>Dangling references — and why Rust prevents them</h2>
+
+  <p>In C, returning a pointer to stack-allocated memory is a classic mistake. The memory is freed when the function returns, but the caller holds a pointer to it.</p>
+
+  <div class="lang-label c">C — dangling pointer (undefined behavior)</div>
+  <pre class="lang-c"><code>char* get_name() {
+    char name[10] = "Alice";    // stack-allocated
+    return name;                // name freed on return — caller gets garbage
+}
+
+char* p = get_name();
+printf("%s\n", p);             // reading freed stack memory — UB</code></pre>
+
+  <div class="lang-label err">Rust — compile error instead</div>
+  <pre class="lang-err"><code>fn dangle() -> &String {        // ✗ ERROR: missing lifetime specifier
+    let s = String::from("hi"); // s is created here
+    &s                          // try to return a reference to s
+}   // s is dropped here — the reference would dangle
+    // Rust rejects this at compile time</code></pre>
+
+  <p>The compiler sees that the reference would outlive the value it points to, and refuses to compile. The fix — return the owned value, not a reference to it:</p>
+
+  <div class="lang-label rust">Rust — return the owned value</div>
+  <pre class="lang-rust"><code>fn no_dangle() -> String {
+    let s = String::from("hi");
+    s                           // move ownership to the caller — valid
+}</code></pre>
+
+  <p>The dangling reference check is also what motivates <strong>lifetimes</strong> — the annotation system for telling the compiler how long references are valid. That's Lesson 5. For now, just know: Rust can see when a reference would outlive its value, and it rejects the code.</p>
+
+  <hr>
+
+  <h2>The Go comparison — runtime vs compile time</h2>
+
+  <p>Go doesn't have references in Rust's sense. Go has pointers (<code>*T</code>) and interfaces, but the language doesn't track whether you have simultaneous readers and writers. Protection is opt-in at runtime (mutexes, channels, the race detector). Rust's protection is mandatory at compile time.</p>
+
+  <table>
+    <thead>
+      <tr><th></th><th style="color: var(--go)">Go</th><th style="color: var(--rust)">Rust</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Shared read access</td>
+        <td>Any pointer can read; no enforcement</td>
+        <td><code>&amp;T</code> — many allowed simultaneously</td>
+      </tr>
+      <tr>
+        <td>Exclusive write access</td>
+        <td><code>sync.Mutex</code> at runtime</td>
+        <td><code>&amp;mut T</code> — compiler enforces exclusivity</td>
+      </tr>
+      <tr>
+        <td>Data race detection</td>
+        <td><code>go test -race</code> at runtime</td>
+        <td>Prevented at compile time in safe Rust</td>
+      </tr>
+      <tr>
+        <td>Iterator invalidation</td>
+        <td>Possible (not a language guarantee)</td>
+        <td>Compile error</td>
+      </tr>
+      <tr>
+        <td>Dangling pointer</td>
+        <td>Not possible (GC keeps value alive)</td>
+        <td>Compile error</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>Quiz — no looking back</h2>
+
+  <div class="quiz" id="quiz">
+    <h3>6 questions</h3>
+
+    <!-- Q1 -->
+    <div class="quiz-question">
+      <p>1. What does <code>&amp;s</code> create in Rust?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q1" value="a"> a deep copy of s on the heap</label></li>
+        <li><label><input type="radio" name="q1" value="b"> a shared reference — read-only access without taking ownership</label></li>
+        <li><label><input type="radio" name="q1" value="c"> a mutable alias that can modify s</label></li>
+        <li><label><input type="radio" name="q1" value="d"> a raw C-style pointer with no safety guarantees</label></li>
+      </ul>
+      <div class="feedback correct" id="q1-correct">Correct. &amp;s is a shared reference — it borrows read-only access to s without taking ownership. When the reference goes out of scope, the value is not dropped, because this code never owned it.</div>
+      <div class="feedback wrong" id="q1-wrong">&amp;s is a shared reference: read-only access to s, without taking ownership. No allocation, no copy, no mutation — just a borrow. The original owner retains ownership throughout.</div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="quiz-question">
+      <p>2. You have an active <code>&amp;s</code> (shared reference). Can you create a <code>&amp;mut s</code> at the same time?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q2" value="a"> yes — you can have one of each type simultaneously</label></li>
+        <li><label><input type="radio" name="q2" value="b"> yes — shared and mutable references coexist freely in Rust</label></li>
+        <li><label><input type="radio" name="q2" value="c"> no — the aliasing rule forbids a mutable reference while any shared reference is active</label></li>
+        <li><label><input type="radio" name="q2" value="d"> only if the shared reference is on a different thread</label></li>
+      </ul>
+      <div class="feedback correct" id="q2-correct">Correct. The aliasing rule: either many shared references, or exactly one mutable reference — never both at the same time. This is the compile-time guarantee that prevents data races and iterator invalidation.</div>
+      <div class="feedback wrong" id="q2-wrong">No. The aliasing rule forbids it: you cannot have a mutable reference while any shared reference is active. The borrow checker enforces this at compile time regardless of threading.</div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="quiz-question">
+      <p>3. How many <code>&amp;T</code> (shared) references to the same value can be active simultaneously?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q3" value="a"> exactly one</label></li>
+        <li><label><input type="radio" name="q3" value="b"> two — one per lexical scope</label></li>
+        <li><label><input type="radio" name="q3" value="c"> unlimited — as many as you need</label></li>
+        <li><label><input type="radio" name="q3" value="d"> limited by the number of CPU cores</label></li>
+      </ul>
+      <div class="feedback correct" id="q3-correct">Correct. Shared references are unlimited — multiple readers can coexist freely. Only mutable references are restricted to one-at-a-time, and they cannot coexist with shared references.</div>
+      <div class="feedback wrong" id="q3-wrong">Shared references are unlimited. The "exactly one" restriction applies to mutable references (&amp;mut T), not shared ones. Many readers simultaneously is always safe — only writers need exclusivity.</div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="quiz-question">
+      <p>4. In the code: <code>let first = &amp;v[0]; v.push(4);</code> — why does Rust reject this?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q4" value="a"> v.push() is not allowed on borrowed vectors</label></li>
+        <li><label><input type="radio" name="q4" value="b"> first holds a shared borrow of v, and push() requires a mutable borrow — aliasing rule violation</label></li>
+        <li><label><input type="radio" name="q4" value="c"> v[0] doesn't exist yet so the reference is invalid</label></li>
+        <li><label><input type="radio" name="q4" value="d"> push() returns a value that must be bound to a variable</label></li>
+      </ul>
+      <div class="feedback correct" id="q4-correct">Correct. first borrows v immutably (&amp;v[0] borrows v). push() would need a mutable borrow of v — aliasing rule violation. The deeper danger: push() might reallocate the vector's buffer, making first a dangling pointer. Rust catches the rule violation before the memory corruption can happen.</div>
+      <div class="feedback wrong" id="q4-wrong">first holds a shared borrow of v (reading v[0] borrows v). push() needs to mutably borrow v to modify it. Shared + mutable simultaneously violates the aliasing rule. The real danger is reallocation: push() might move the buffer, leaving first dangling. Rust catches the rule, preventing the corruption.</div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="quiz-question">
+      <p>5. How does Rust prevent returning a dangling reference from a function?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q5" value="a"> it runs a garbage collector that keeps the value alive</label></li>
+        <li><label><input type="radio" name="q5" value="b"> it copies the value to the heap automatically before the function returns</label></li>
+        <li><label><input type="radio" name="q5" value="c"> the borrow checker rejects code where a reference would outlive the value it points to</label></li>
+        <li><label><input type="radio" name="q5" value="d"> functions are not allowed to return references at all</label></li>
+      </ul>
+      <div class="feedback correct" id="q5-correct">Correct. The borrow checker performs a static analysis: if a reference would outlive the value it references (e.g., returning &amp;s where s is a local variable), it's a compile error. This is enforced via lifetime analysis — the topic of Lesson 5.</div>
+      <div class="feedback wrong" id="q5-wrong">No GC, no auto-copy, and references can be returned (with lifetimes). The borrow checker statically determines whether a reference could outlive its value — if it can, the code is rejected. You can return a reference to data the caller owns; you cannot return a reference to data the function owns (that gets dropped on return).</div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="quiz-question">
+      <p>6. In Go you'd protect shared mutable state with <code>sync.Mutex</code>. What does Rust use instead?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q6" value="a"> an equivalent Mutex type — identical approach</label></li>
+        <li><label><input type="radio" name="q6" value="b"> the borrow checker — aliasing rules that prevent shared mutation at compile time</label></li>
+        <li><label><input type="radio" name="q6" value="c"> atomic operations only — no higher-level constructs</label></li>
+        <li><label><input type="radio" name="q6" value="d"> channels, exactly like Go's goroutine model</label></li>
+      </ul>
+      <div class="feedback correct" id="q6-correct">Correct — for single-threaded code. The borrow checker's aliasing rules make shared mutation structurally impossible in safe Rust: you can't have &amp;mut T and &amp;T at the same time, so no runtime lock is needed. For multi-threaded shared state, Rust does have Mutex&lt;T&gt; — but the borrow checker still verifies you acquire the lock before accessing the data.</div>
+      <div class="feedback wrong" id="q6-wrong">In single-threaded code, the borrow checker's aliasing rules eliminate the need for a mutex entirely: you physically cannot have a writer and reader simultaneously. For multi-threaded shared state, Rust does have Mutex&lt;T&gt; — but unlike Go, the borrow checker enforces that you hold the lock before accessing the protected data.</div>
+    </div>
+
+    <button class="quiz-submit" onclick="submitQuiz()">Check answers</button>
+    <div class="score-display" id="score"></div>
+  </div>
+
+  <hr>
+
+  <h2>What's next</h2>
+
+  <p>You can now borrow values without consuming them, and you understand <em>why</em> the aliasing rule exists (data races, iterator invalidation, dangling pointers). The borrow checker is no longer an obstacle — it's a proof system you're starting to read.</p>
+
+  <p>Next: <strong>Slices</strong> — the first type in Rust that <em>is</em> a reference by definition. Slices let you borrow a contiguous portion of a collection (a substring, a sub-array) without copying it. They're also the natural bridge to understanding why lifetimes need names.</p>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher in the chat. The aliasing rule is the most conceptually dense thing in Rust — if any example didn't click, or the Go comparison felt off, just ask.
+  </div>
+
+  <div class="nav">
+    <a href="0002-ownership-rules.html">← Lesson 2: Ownership Rules</a>
+    <a href="0004-slices.html">Lesson 4: Slices →</a>
+  </div>
+
+</div>
+
+<script>
+  const answers = { q1:'b', q2:'c', q3:'c', q4:'b', q5:'c', q6:'b' };
+
+  function submitQuiz() {
+    let score = 0;
+    const total = Object.keys(answers).length;
+    for (const [q, correct] of Object.entries(answers)) {
+      const sel = document.querySelector(`input[name="${q}"]:checked`);
+      const ok  = document.getElementById(`${q}-correct`);
+      const bad = document.getElementById(`${q}-wrong`);
+      if (ok)  ok.style.display  = 'none';
+      if (bad) bad.style.display = 'none';
+      if (!sel) continue;
+      if (sel.value === correct) { score++; if (ok)  ok.style.display  = 'block'; }
+      else                       {          if (bad) bad.style.display = 'block'; }
+    }
+    const el = document.getElementById('score');
+    el.style.display = 'block';
+    if (score === total) {
+      el.textContent = `${score} / ${total} — perfect. The aliasing rule is yours.`;
+      el.style.color = '#166534';
+    } else if (score >= 4) {
+      el.textContent = `${score} / ${total} — solid. Re-read the explanations for what you missed.`;
+    } else {
+      el.textContent = `${score} / ${total} — re-read the lesson, especially the aliasing rule, before moving on.`;
+      el.style.color = '#991b1b';
+    }
+  }
+</script>
+</body>
+</html>
