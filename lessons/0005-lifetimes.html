@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 5 — Lifetimes</title>
+  <style>
+    :root {
+      --bg: #faf9f7; --fg: #1a1a1a; --muted: #6b6b6b;
+      --accent: #b5451b; --code-bg: #f0ede8; --border: #ddd8d0;
+      --go: #00acd7; --c: #a8b400; --rust: #b5451b; --max: 680px;
+      --lt-color: #7c3aed;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      background: var(--bg); color: var(--fg);
+      font-size: 18px; line-height: 1.7; padding: 3rem 1.5rem 6rem;
+    }
+    .container { max-width: var(--max); margin: 0 auto; }
+    .lesson-meta {
+      font-family: system-ui, sans-serif; font-size: 0.75rem;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2.5rem;
+    }
+    h1 { font-size: 2rem; font-weight: normal; line-height: 1.25; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-style: italic; font-size: 1.05rem; margin-bottom: 3rem; }
+    h2 {
+      font-size: 1.05rem; font-weight: bold; font-family: system-ui, sans-serif;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-top: 3rem; margin-bottom: 1rem; color: var(--muted);
+    }
+    h3 { font-size: 1.1rem; font-weight: bold; margin-top: 2rem; margin-bottom: 0.6rem; }
+    p { margin-bottom: 1.2rem; }
+    ul, ol { margin: 0 0 1.2rem 1.5rem; line-height: 2; }
+    code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82em; background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px;
+    }
+    .lt { color: var(--lt-color); font-weight: bold; } /* lifetime annotation highlight */
+    pre {
+      background: var(--code-bg); border-left: 3px solid var(--border);
+      padding: 1.2rem 1.4rem; overflow-x: auto; margin: 1.5rem 0; border-radius: 0 4px 4px 0;
+    }
+    pre code { background: none; padding: 0; font-size: 0.85rem; line-height: 1.7; }
+    pre.lang-rust { border-left-color: var(--rust); }
+    pre.lang-rust-lt { border-left-color: var(--lt-color); }
+    pre.lang-err  { border-left-color: #e53e3e; }
+    pre.lang-go   { border-left-color: var(--go); }
+    .lang-label {
+      font-family: system-ui, sans-serif; font-size: 0.65rem;
+      letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+      margin-bottom: -0.8rem; margin-top: 1.5rem;
+    }
+    .lang-label.rust { color: var(--rust); }
+    .lang-label.lt   { color: var(--lt-color); }
+    .lang-label.err  { color: #e53e3e; }
+    .lang-label.go   { color: var(--go); }
+    .callout {
+      border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      padding: 1rem 1.2rem; margin: 2rem 0; background: white; border-radius: 0 6px 6px 0;
+    }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout.key    { border-left-color: #2563eb; }
+    .callout.warn   { border-left-color: #d97706; background: #fffbeb; }
+    .callout.safe   { border-left-color: #16a34a; background: #f0fdf4; }
+    .callout.lt-box { border-left-color: var(--lt-color); background: #faf5ff; }
+
+    .reveal-box {
+      border: 2px solid var(--lt-color); border-radius: 8px;
+      padding: 1.4rem 1.6rem; margin: 2rem 0; background: #faf5ff;
+      font-family: system-ui, sans-serif;
+    }
+    .reveal-box h3 {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--lt-color); margin-top: 0; margin-bottom: 1rem;
+    }
+
+    .step-list { counter-reset: steps; list-style: none; margin: 0 0 1.2rem 0; }
+    .step-list li {
+      counter-increment: steps; position: relative;
+      padding: 0.6rem 0 0.6rem 3rem; border-bottom: 1px solid var(--border);
+      font-family: system-ui, sans-serif; font-size: 0.92rem;
+    }
+    .step-list li:last-child { border-bottom: none; }
+    .step-list li::before {
+      content: counter(steps);
+      position: absolute; left: 0; top: 0.6rem;
+      width: 1.8rem; height: 1.8rem; border-radius: 50%;
+      background: var(--lt-color); color: white;
+      font-size: 0.75rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-list li strong { display: block; }
+    .step-list li span { color: var(--muted); font-size: 0.85rem; }
+
+    table {
+      width: 100%; border-collapse: collapse; margin: 1.5rem 0;
+      font-size: 0.88rem; font-family: system-ui, sans-serif;
+    }
+    th { background: var(--code-bg); border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; }
+    td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; vertical-align: top; }
+    tr:nth-child(even) td { background: #fdfcfa; }
+
+    .quiz {
+      background: white; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.8rem; margin: 2.5rem 0;
+    }
+    .quiz h3 {
+      font-family: system-ui, sans-serif; font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent);
+      margin-top: 0; margin-bottom: 1rem;
+    }
+    .quiz-question { margin-bottom: 2rem; }
+    .quiz-question p { margin-bottom: 0.8rem; font-weight: bold; }
+    .options { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .options li label {
+      display: flex; align-items: flex-start; gap: 0.7rem; cursor: pointer;
+      padding: 0.6rem 0.9rem; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.92rem; font-family: system-ui, sans-serif; transition: background 0.1s;
+    }
+    .options li label:hover { background: var(--code-bg); }
+    .options li input[type="radio"] { margin-top: 0.2rem; flex-shrink: 0; }
+    .feedback {
+      display: none; margin-top: 0.6rem; padding: 0.7rem 0.9rem; border-radius: 6px;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; line-height: 1.5;
+    }
+    .feedback.correct { background: #dcfce7; color: #166534; }
+    .feedback.wrong   { background: #fee2e2; color: #991b1b; }
+    .quiz-submit {
+      display: block; margin-top: 1rem; padding: 0.65rem 1.5rem;
+      background: var(--accent); color: white; border: none; border-radius: 6px;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    }
+    .quiz-submit:hover { background: #9b3a18; }
+    .score-display {
+      display: none; margin-top: 1rem;
+      font-family: system-ui, sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--accent);
+    }
+    .nav {
+      margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+      font-family: system-ui, sans-serif; font-size: 0.85rem;
+    }
+    .nav a { color: var(--accent); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    .ask-teacher {
+      background: #f0f4ff; border: 1px solid #c7d7ff; border-radius: 8px;
+      padding: 1rem 1.2rem; margin: 3rem 0 1rem;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; color: #1e3a8a;
+    }
+    hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+    .primary-source {
+      background: white; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem 1.2rem; margin: 2rem 0;
+      font-family: system-ui, sans-serif; font-size: 0.88rem;
+    }
+    .primary-source strong { display: block; margin-bottom: 0.3rem; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .primary-source a { color: var(--fg); font-weight: 600; }
+
+    .annotation-anatomy {
+      background: var(--code-bg); border-radius: 8px; padding: 1.8rem;
+      margin: 1.5rem 0; font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 1rem; line-height: 1; text-align: center; overflow-x: auto;
+    }
+    .annotation-anatomy .line { margin-bottom: 0.5rem; }
+    .annotation-anatomy .arrows {
+      font-family: system-ui, sans-serif; font-size: 0.72rem;
+      color: var(--muted); margin-top: 0.8rem; display: flex;
+      justify-content: center; gap: 3rem;
+    }
+    .ann-lt { color: var(--lt-color); font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lesson-meta">Lesson 5 of 9 &nbsp;·&nbsp; Rust Curriculum &nbsp;·&nbsp; Ownership</div>
+
+  <h1>Lifetimes</h1>
+  <p class="subtitle">Naming what the compiler already knows — and the one thing it sometimes can't figure out alone</p>
+
+  <div class="primary-source">
+    <strong>Primary source for this lesson</strong>
+    <a href="https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html">The Rust Book — Ch. 10.3: Validating References with Lifetimes</a>
+    &nbsp;· This is a longer chapter. Read it after — the lesson gives you the mental model first.
+  </div>
+
+  <h2>The one thing lifetimes are not</h2>
+
+  <p>Before anything else: <strong>lifetime annotations do not control how long values live.</strong> The compiler already knows exactly how long every value lives — that's what ownership and scopes give it. Lifetimes are not a mechanism for extending or shortening that.</p>
+
+  <p>Lifetime annotations do exactly one thing: they describe <em>relationships between references</em>. Specifically: "this output reference is valid for at least as long as this input reference." They give the compiler vocabulary to describe constraints it already needs to enforce.</p>
+
+  <div class="callout lt-box">
+    <p><strong>The right mental model:</strong> a lifetime annotation is like a label you stick on two references that says "these two must live at least as long as each other." You're not changing anything about how the program runs. You're helping the compiler prove a property it already wants to verify.</p>
+  </div>
+
+  <hr>
+
+  <h2>Why they're needed — the problem</h2>
+
+  <p>The compiler can verify that references are valid on its own for simple cases. But consider this:</p>
+
+  <div class="lang-label err">Rust — compile error: ambiguous lifetime</div>
+  <pre class="lang-err"><code>fn longest(x: &str, y: &str) -> &str {
+    if x.len() > y.len() { x } else { y }
+}
+// error[E0106]: missing lifetime specifier
+// the compiler doesn't know if the return is tied to x or y</code></pre>
+
+  <p>The compiler sees: you're returning a reference, and you have two input references. It cannot tell — from the function signature alone — whether the returned reference came from <code>x</code> or from <code>y</code>. It needs to know, because the caller needs to know how long the returned reference is valid for. If it came from <code>x</code>, the caller must keep <code>x</code> alive. If from <code>y</code>, keep <code>y</code> alive. If from either, keep both alive.</p>
+
+  <p>The function body would tell the compiler which — but Rust checks call sites using only the signature, not the body. (This is what makes separate compilation possible.) So you must encode the relationship in the signature itself.</p>
+
+  <hr>
+
+  <h2>Lifetime annotation syntax</h2>
+
+  <p>A lifetime parameter is a name starting with <code>'</code> (apostrophe), placed in angle brackets after the function name, and used on the references you want to connect.</p>
+
+  <div class="annotation-anatomy">
+    <div class="line">fn longest<span class="ann-lt">&lt;'a&gt;</span>(x: <span class="ann-lt">&'a</span> str, y: <span class="ann-lt">&'a</span> str) -&gt; <span class="ann-lt">&'a</span> str</div>
+    <div class="arrows">
+      <span>↑ declare<br>the name</span>
+      <span>↑ x borrows<br>for at least 'a</span>
+      <span>↑ y borrows<br>for at least 'a</span>
+      <span>↑ return lives<br>for at most 'a</span>
+    </div>
+  </div>
+
+  <p>Read this as: "for some lifetime <code>'a</code> — whatever the shorter of <code>x</code>'s and <code>y</code>'s lifetimes turns out to be — the return value is valid for that same duration." You're not choosing a duration. You're saying: <em>whatever duration makes both inputs valid, the output lasts exactly that long.</em></p>
+
+  <div class="lang-label lt">Rust — annotated, compiles</div>
+  <pre class="lang-rust-lt"><code>fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() { x } else { y }
+}
+
+fn main() {
+    let s1 = String::from("long string");
+    let result;
+    {
+        let s2 = String::from("xy");
+        result = longest(s1.as_str(), s2.as_str());
+        println!("{}", result);   // ✓ fine — result used inside s2's scope
+    }
+    // println!("{}", result);    // ✗ would error — s2 dropped, result might point to it
+}</code></pre>
+
+  <p>The compiler now knows: <code>result</code> is valid for <code>'a</code>, which is the shorter of <code>s1</code>'s and <code>s2</code>'s lifetimes. When <code>s2</code> is dropped, <code>'a</code> ends, and using <code>result</code> after that is a compile error. No dangling pointer.</p>
+
+  <div class="callout key">
+    <p><strong>The lifetime parameter <code>'a</code> is not a duration you pick.</strong> It's a variable — the compiler substitutes in the actual lifetimes at each call site and checks that the constraints hold. If they don't, it's a compile error at the call site. The function author isn't saying "this lasts 5 seconds"; they're saying "the output lasts as long as both inputs do."</p>
+  </div>
+
+  <hr>
+
+  <h2>Lifetime elision — why most code has no annotations</h2>
+
+  <p>If annotations were required everywhere, Rust would be unbearable. Early Rust did require them everywhere. The team noticed that the same patterns appeared over and over, and encoded them as <strong>elision rules</strong> — patterns the compiler recognises and fills in automatically.</p>
+
+  <div class="reveal-box">
+    <h3>The Three Elision Rules (applied in order)</h3>
+    <ol class="step-list">
+      <li>
+        <strong>Each reference parameter gets its own distinct lifetime.</strong>
+        <span><code>fn foo(x: &str, y: &str)</code> → compiler treats as <code>fn foo&lt;'a, 'b&gt;(x: &'a str, y: &'b str)</code></span>
+      </li>
+      <li>
+        <strong>If there is exactly one input lifetime, it is assigned to all output references.</strong>
+        <span><code>fn first(s: &str) -> &str</code> → compiler treats as <code>fn first&lt;'a&gt;(s: &'a str) -> &'a str</code></span>
+      </li>
+      <li>
+        <strong>If one of the inputs is <code>&amp;self</code> or <code>&amp;mut self</code>, its lifetime is assigned to all outputs.</strong>
+        <span>Methods on structs almost never need lifetime annotations on their return values.</span>
+      </li>
+    </ol>
+  </div>
+
+  <p>If these three rules fully determine all lifetimes in the signature, the compiler fills them in and you write nothing. If they leave any output reference's lifetime ambiguous, you must annotate. That's the <em>only</em> situation you need annotations on functions — and it's rarer than tutorials make it seem.</p>
+
+  <div class="lang-label rust">Rust — elision handles these automatically</div>
+  <pre class="lang-rust"><code>// Rule 2: one input ref → output gets same lifetime. No annotation needed.
+fn first_word(s: &str) -> &str { ... }
+
+// Rule 3: &self method → output gets self's lifetime. No annotation needed.
+impl ImportantExcerpt {
+    fn level(&self) -> i32 { ... }
+    fn announce(&self, announcement: &str) -> &str { self.part }
+}</code></pre>
+
+  <hr>
+
+  <h2>Lifetimes in structs</h2>
+
+  <p>If a struct holds a reference, it needs a lifetime annotation — because the struct cannot outlive the data it's borrowing.</p>
+
+  <div class="lang-label lt">Rust — struct with a reference</div>
+  <pre class="lang-rust-lt"><code>struct Excerpt<'a> {
+    part: &'a str,       // this struct borrows a string slice
+}
+
+fn main() {
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let first_sentence = novel.split('.').next().unwrap();
+
+    let excerpt = Excerpt { part: first_sentence };
+    // excerpt borrows from novel — excerpt cannot outlive novel
+    println!("{}", excerpt.part);
+}
+// novel dropped here — excerpt was dropped first (declared after), so fine</code></pre>
+
+  <p>The <code>'a</code> on the struct says: "an instance of <code>Excerpt</code> cannot outlive the string slice its <code>part</code> field references." The compiler enforces this at every use site.</p>
+
+  <div class="callout warn">
+    <p><strong>Practical advice:</strong> structs holding references are more complex to work with. In most application code, prefer owning your data (store a <code>String</code>, not a <code>&amp;str</code>) to avoid needing lifetime annotations on structs. Use reference-holding structs when performance is critical and copying is too expensive. You'll know when you need it.</p>
+  </div>
+
+  <hr>
+
+  <h2>The <code>'static</code> lifetime</h2>
+
+  <p><code>'static</code> is a special lifetime meaning "valid for the entire program." You've already been using <code>'static</code> without knowing it — string literals have type <code>&amp;'static str</code> because their bytes are embedded in the binary and live forever.</p>
+
+  <div class="lang-label rust">Rust — 'static</div>
+  <pre class="lang-rust"><code>let s: &'static str = "I live for the whole program";
+// This is the same as:
+let s = "I live for the whole program";   // type inferred as &'static str</code></pre>
+
+  <div class="callout warn">
+    <p><strong>When the compiler says "try adding <code>'static</code>":</strong> this is usually a hint that you've structured something incorrectly, not an invitation to slap <code>'static</code> on everything. If you need <code>'static</code> on a function argument and you're not dealing with thread spawning or trait objects, step back — there's likely a design issue.</p>
+  </div>
+
+  <hr>
+
+  <h2>Go and C don't have this — why?</h2>
+
+  <table>
+    <thead>
+      <tr><th></th><th style="color:var(--go)">Go</th><th style="color:var(--c)">C</th><th style="color:var(--lt-color)">Rust</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Reference validity tracked?</td>
+        <td>By the GC at runtime</td>
+        <td>Not at all — your problem</td>
+        <td>By the borrow checker at compile time</td>
+      </tr>
+      <tr>
+        <td>Dangling reference possible?</td>
+        <td>No — GC keeps data alive</td>
+        <td>Yes — classic bug</td>
+        <td>No — compile error</td>
+      </tr>
+      <tr>
+        <td>Lifetime annotations?</td>
+        <td>None needed (GC handles it)</td>
+        <td>None (no checking)</td>
+        <td>Sometimes needed for ambiguous cases</td>
+      </tr>
+      <tr>
+        <td>Cost of the mechanism</td>
+        <td>GC runtime overhead</td>
+        <td>None (no safety)</td>
+        <td>Compile-time only — zero runtime cost</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Go doesn't need lifetimes because the GC keeps referenced data alive automatically — a pointer is valid as long as anything points to it, and the GC scans to find out. C doesn't need lifetime syntax because it provides no safety. Rust provides safety <em>and</em> no GC, so it needs the compile-time proof — and lifetime annotations are the syntax for writing that proof.</p>
+
+  <hr>
+
+  <h2>Pulling the ownership arc together</h2>
+
+  <p>You've now covered the full ownership system across five lessons. Here's how the pieces connect:</p>
+
+  <table>
+    <thead><tr><th>Concept</th><th>What it does</th><th>What it prevents</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Ownership</strong></td><td>One owner per value; freed when owner drops</td><td>Double-free, memory leaks</td></tr>
+      <tr><td><strong>Move semantics</strong></td><td>Assignment transfers ownership</td><td>Double-free from aliased owners</td></tr>
+      <tr><td><strong>Borrowing</strong></td><td>Temporary read/write access via references</td><td>Use-after-free, data races, iterator invalidation</td></tr>
+      <tr><td><strong>Slices</strong></td><td>Borrowed views into contiguous data</td><td>Stale index bugs, dangling string pointers</td></tr>
+      <tr><td><strong>Lifetimes</strong></td><td>Annotate relationships between references</td><td>Dangling references across function boundaries</td></tr>
+    </tbody>
+  </table>
+
+  <p>Every rule traces back to Lesson 1's single invariant: every value has exactly one owner at a time, freed when the owner dies. Lifetimes are the final piece that makes this verifiable across function boundaries, where the compiler can't see the full picture from a single scope.</p>
+
+  <hr>
+
+  <h2>Quiz — no looking back</h2>
+
+  <div class="quiz">
+    <h3>6 questions</h3>
+
+    <!-- Q1 -->
+    <div class="quiz-question">
+      <p>1. What do lifetime annotations actually do?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q1" value="a"> extend how long a value lives on the heap</label></li>
+        <li><label><input type="radio" name="q1" value="b"> describe relationships between references so the compiler can verify they don't dangle</label></li>
+        <li><label><input type="radio" name="q1" value="c"> tell the GC when to collect a value</label></li>
+        <li><label><input type="radio" name="q1" value="d"> replace ownership rules for reference types</label></li>
+      </ul>
+      <div class="feedback correct" id="q1-correct">Correct. Lifetime annotations don't change program behaviour or how long values live — the compiler already knows that from scopes. They describe constraints between references: "this output reference is valid for at most as long as these input references." The compiler uses them to verify at call sites that no dangling reference can result.</div>
+      <div class="feedback wrong" id="q1-wrong">Lifetime annotations don't change how long values live — that's determined by ownership and scopes. They describe relationships: "this output reference lives at most as long as these inputs." The compiler uses that to verify, at call sites, that no dangling reference can result.</div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="quiz-question">
+      <p>2. Why does <code>fn longest(x: &str, y: &str) -> &str</code> fail to compile without lifetime annotations?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q2" value="a"> string slices always require explicit lifetimes</label></li>
+        <li><label><input type="radio" name="q2" value="b"> the compiler can't tell from the signature whether the return borrows from x or y — it can't verify call sites</label></li>
+        <li><label><input type="radio" name="q2" value="c"> functions cannot return references at all without unsafe</label></li>
+        <li><label><input type="radio" name="q2" value="d"> the second elision rule covers this case automatically</label></li>
+      </ul>
+      <div class="feedback correct" id="q2-correct">Correct. With two input references and one output reference, elision rule 2 doesn't apply (it only fires when there's exactly one input reference). The compiler checks call sites using only the signature — it can't look at the body. Without knowing which input the output borrows from, it can't verify the caller keeps the right thing alive.</div>
+      <div class="feedback wrong" id="q2-wrong">Elision rule 2 requires exactly one input reference. With two, the compiler has no way to know if the return came from x or y. It needs to know to verify call sites — and it only uses the function signature, not the body, for that. Hence the annotation is required.</div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="quiz-question">
+      <p>3. In <code>fn longest&lt;'a&gt;(x: &'a str, y: &'a str) -> &'a str</code>, what does <code>'a</code> actually represent at a call site?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q3" value="a"> a fixed duration chosen by the programmer at compile time</label></li>
+        <li><label><input type="radio" name="q3" value="b"> the shorter of x's and y's actual lifetimes at that specific call site</label></li>
+        <li><label><input type="radio" name="q3" value="c"> the lifetime of the return value on the heap</label></li>
+        <li><label><input type="radio" name="q3" value="d"> the scope of the function itself</label></li>
+      </ul>
+      <div class="feedback correct" id="q3-correct">Correct. 'a is a type variable the compiler substitutes at each call site. It resolves to the shorter of x's and y's actual lifetimes — because the return must be valid under both, and the constraint is that all three share the same 'a. The compiler checks the caller doesn't use the return after the shorter-lived input is dropped.</div>
+      <div class="feedback wrong" id="q3-wrong">'a is a variable, not a fixed duration. At each call site, the compiler substitutes 'a with the shorter of x's and y's actual lifetimes — the most conservative bound that keeps the constraint "all three are 'a" satisfiable. The return is then only valid within that duration.</div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="quiz-question">
+      <p>4. Which elision rule handles <code>fn first_word(s: &str) -> &str</code> automatically?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q4" value="a"> Rule 1 — each parameter gets its own lifetime</label></li>
+        <li><label><input type="radio" name="q4" value="b"> Rule 2 — one input reference means the output gets the same lifetime</label></li>
+        <li><label><input type="radio" name="q4" value="c"> Rule 3 — &self's lifetime is applied to the output</label></li>
+        <li><label><input type="radio" name="q4" value="d"> no rule — this requires an explicit annotation</label></li>
+      </ul>
+      <div class="feedback correct" id="q4-correct">Correct. Exactly one input reference (s: &str) → Rule 2 applies: the compiler treats the return as having the same lifetime as s. Equivalent to writing fn first_word&lt;'a&gt;(s: &'a str) -> &'a str. No annotation needed.</div>
+      <div class="feedback wrong" id="q4-wrong">Rule 2: when there's exactly one input reference, the output reference is assigned that same lifetime automatically. first_word has one input (&str) and one output (&str) — the compiler fills in the 'a without you writing it.</div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="quiz-question">
+      <p>5. A struct holds a <code>&amp;str</code> field. Why does it need a lifetime parameter?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q5" value="a"> because strings are non-Copy and structs can't hold non-Copy types without annotations</label></li>
+        <li><label><input type="radio" name="q5" value="b"> to tell the compiler the struct cannot outlive the string data it's borrowing</label></li>
+        <li><label><input type="radio" name="q5" value="c"> only for public structs — private structs can hold references without annotations</label></li>
+        <li><label><input type="radio" name="q5" value="d"> struct lifetime parameters are optional — the compiler warns but still compiles</label></li>
+      </ul>
+      <div class="feedback correct" id="q5-correct">Correct. If a struct holds a reference, the compiler needs to know the relationship: the struct cannot outlive the data it references. The lifetime parameter on the struct encodes this constraint, so the compiler can verify it at every use site.</div>
+      <div class="feedback wrong" id="q5-wrong">A struct holding a reference creates a borrowing relationship: the struct must not outlive the data it borrows. The lifetime annotation on the struct tells the compiler about this constraint so it can be verified at every use site. It's required — not optional.</div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="quiz-question">
+      <p>6. When the compiler suggests adding <code>'static</code> to fix a lifetime error, what should you do first?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q6" value="a"> add 'static — the compiler's suggestion is always the right fix</label></li>
+        <li><label><input type="radio" name="q6" value="b"> question whether the design is correct — 'static is a hint of a structural problem, not a routine fix</label></li>
+        <li><label><input type="radio" name="q6" value="c"> use unsafe to bypass the lifetime check instead</label></li>
+        <li><label><input type="radio" name="q6" value="d"> switch the field type from &str to &mut str</label></li>
+      </ul>
+      <div class="feedback correct" id="q6-correct">Correct. 'static means "valid for the whole program." If you're reaching for it on a function argument or struct field (outside thread spawning or trait objects), it almost always means the design needs rethinking — perhaps the struct should own its data (String instead of &str) rather than borrow it.</div>
+      <div class="feedback wrong" id="q6-wrong">The compiler's 'static suggestion is a mechanical fix, not necessarily the right design choice. 'static means "lives for the entire program." If you're not dealing with threads or trait objects, needing 'static usually signals a design issue — often the fix is to own the data (String) rather than borrow it (&str).</div>
+    </div>
+
+    <button class="quiz-submit" onclick="submitQuiz()">Check answers</button>
+    <div class="score-display" id="score"></div>
+  </div>
+
+  <hr>
+
+  <h2>What's next — the pivot</h2>
+
+  <p>You've completed the ownership arc: five lessons, the hardest part of Rust, the thing that sank the previous attempt. It's yours now.</p>
+
+  <p>The next two lessons shift terrain. Lesson 6 covers <strong>structs and enums</strong> — Rust's building blocks for modelling data, and the place where the type system starts to feel genuinely expressive. Lesson 7 covers <strong>traits</strong> — Rust's answer to interfaces, which will feel familiar from Go but with meaningful differences.</p>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher in the chat. Lifetimes are the concept most worth talking through — especially if any of the call-site mechanics felt fuzzy, or if you want to see more examples of when annotations are and aren't needed.
+  </div>
+
+  <div class="nav">
+    <a href="0004-slices.html">← Lesson 4: Slices</a>
+    <a href="0006-structs-enums.html">Lesson 6: Structs &amp; Enums →</a>
+  </div>
+
+</div>
+
+<script>
+  const answers = { q1:'b', q2:'b', q3:'b', q4:'b', q5:'b', q6:'b' };
+  function submitQuiz() {
+    let score = 0;
+    const total = Object.keys(answers).length;
+    for (const [q, correct] of Object.entries(answers)) {
+      const sel = document.querySelector(`input[name="${q}"]:checked`);
+      const ok  = document.getElementById(`${q}-correct`);
+      const bad = document.getElementById(`${q}-wrong`);
+      if (ok)  ok.style.display  = 'none';
+      if (bad) bad.style.display = 'none';
+      if (!sel) continue;
+      if (sel.value === correct) { score++; if (ok)  ok.style.display  = 'block'; }
+      else                       {          if (bad) bad.style.display = 'block'; }
+    }
+    const el = document.getElementById('score');
+    el.style.display = 'block';
+    if (score === total) {
+      el.textContent = `${score} / ${total} — perfect. The ownership arc is complete.`;
+      el.style.color = '#166534';
+    } else if (score >= 4) {
+      el.textContent = `${score} / ${total} — solid. Re-read the explanations for what you missed.`;
+    } else {
+      el.textContent = `${score} / ${total} — re-read the lesson before moving on. Lifetimes reward a second read.`;
+      el.style.color = '#991b1b';
+    }
+  }
+</script>
+</body>
+</html>
