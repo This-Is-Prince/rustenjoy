@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 6 — Structs &amp; Enums</title>
+  <style>
+    :root {
+      --bg: #faf9f7; --fg: #1a1a1a; --muted: #6b6b6b;
+      --accent: #b5451b; --code-bg: #f0ede8; --border: #ddd8d0;
+      --go: #00acd7; --ts: #3178c6; --rust: #b5451b; --max: 680px;
+      --enum-color: #0f766e;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      background: var(--bg); color: var(--fg);
+      font-size: 18px; line-height: 1.7; padding: 3rem 1.5rem 6rem;
+    }
+    .container { max-width: var(--max); margin: 0 auto; }
+    .lesson-meta {
+      font-family: system-ui, sans-serif; font-size: 0.75rem;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2.5rem;
+    }
+    h1 { font-size: 2rem; font-weight: normal; line-height: 1.25; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-style: italic; font-size: 1.05rem; margin-bottom: 3rem; }
+    h2 {
+      font-size: 1.05rem; font-weight: bold; font-family: system-ui, sans-serif;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-top: 3rem; margin-bottom: 1rem; color: var(--muted);
+    }
+    h3 { font-size: 1.1rem; font-weight: bold; margin-top: 2rem; margin-bottom: 0.6rem; }
+    p { margin-bottom: 1.2rem; }
+    ul, ol { margin: 0 0 1.2rem 1.5rem; line-height: 2; }
+    code {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.82em; background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 3px;
+    }
+    pre {
+      background: var(--code-bg); border-left: 3px solid var(--border);
+      padding: 1.2rem 1.4rem; overflow-x: auto; margin: 1.5rem 0; border-radius: 0 4px 4px 0;
+    }
+    pre code { background: none; padding: 0; font-size: 0.85rem; line-height: 1.7; }
+    pre.lang-rust   { border-left-color: var(--rust); }
+    pre.lang-go     { border-left-color: var(--go); }
+    pre.lang-ts     { border-left-color: var(--ts); }
+    pre.lang-enum   { border-left-color: var(--enum-color); }
+    .lang-label {
+      font-family: system-ui, sans-serif; font-size: 0.65rem;
+      letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+      margin-bottom: -0.8rem; margin-top: 1.5rem;
+    }
+    .lang-label.rust { color: var(--rust); }
+    .lang-label.go   { color: var(--go); }
+    .lang-label.ts   { color: var(--ts); }
+    .lang-label.en   { color: var(--enum-color); }
+    .callout {
+      border: 1px solid var(--border); border-left: 4px solid var(--accent);
+      padding: 1rem 1.2rem; margin: 2rem 0; background: white; border-radius: 0 6px 6px 0;
+    }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout.key    { border-left-color: #2563eb; }
+    .callout.warn   { border-left-color: #d97706; background: #fffbeb; }
+    .callout.safe   { border-left-color: #16a34a; background: #f0fdf4; }
+    .callout.enum-b { border-left-color: var(--enum-color); background: #f0fdfa; }
+
+    /* divider between struct / enum halves */
+    .section-break {
+      margin: 3.5rem 0; border: none;
+      border-top: 2px solid var(--border);
+      position: relative; text-align: center;
+    }
+    .section-break span {
+      position: relative; top: -0.75rem; background: var(--bg);
+      padding: 0 1rem; font-family: system-ui, sans-serif;
+      font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); font-weight: 600;
+    }
+
+    table {
+      width: 100%; border-collapse: collapse; margin: 1.5rem 0;
+      font-size: 0.88rem; font-family: system-ui, sans-serif;
+    }
+    th { background: var(--code-bg); border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; }
+    td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; vertical-align: top; }
+    tr:nth-child(even) td { background: #fdfcfa; }
+
+    .quiz {
+      background: white; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.8rem; margin: 2.5rem 0;
+    }
+    .quiz h3 {
+      font-family: system-ui, sans-serif; font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent);
+      margin-top: 0; margin-bottom: 1rem;
+    }
+    .quiz-question { margin-bottom: 2rem; }
+    .quiz-question p { margin-bottom: 0.8rem; font-weight: bold; }
+    .options { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .options li label {
+      display: flex; align-items: flex-start; gap: 0.7rem; cursor: pointer;
+      padding: 0.6rem 0.9rem; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.92rem; font-family: system-ui, sans-serif; transition: background 0.1s;
+    }
+    .options li label:hover { background: var(--code-bg); }
+    .options li input[type="radio"] { margin-top: 0.2rem; flex-shrink: 0; }
+    .feedback {
+      display: none; margin-top: 0.6rem; padding: 0.7rem 0.9rem; border-radius: 6px;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; line-height: 1.5;
+    }
+    .feedback.correct { background: #dcfce7; color: #166534; }
+    .feedback.wrong   { background: #fee2e2; color: #991b1b; }
+    .quiz-submit {
+      display: block; margin-top: 1rem; padding: 0.65rem 1.5rem;
+      background: var(--accent); color: white; border: none; border-radius: 6px;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    }
+    .quiz-submit:hover { background: #9b3a18; }
+    .score-display {
+      display: none; margin-top: 1rem;
+      font-family: system-ui, sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--accent);
+    }
+    .nav {
+      margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+      font-family: system-ui, sans-serif; font-size: 0.85rem;
+    }
+    .nav a { color: var(--accent); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    .ask-teacher {
+      background: #f0f4ff; border: 1px solid #c7d7ff; border-radius: 8px;
+      padding: 1rem 1.2rem; margin: 3rem 0 1rem;
+      font-family: system-ui, sans-serif; font-size: 0.88rem; color: #1e3a8a;
+    }
+    hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+    .primary-source {
+      background: white; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem 1.2rem; margin: 2rem 0;
+      font-family: system-ui, sans-serif; font-size: 0.88rem;
+    }
+    .primary-source strong { display: block; margin-bottom: 0.3rem; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .primary-source a { color: var(--fg); font-weight: 600; }
+
+    .variant-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin: 1.5rem 0;
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace; font-size: 0.82rem;
+    }
+    .variant-grid > div {
+      background: var(--code-bg); border-radius: 6px; padding: 0.9rem 1rem; line-height: 1.6;
+    }
+    .variant-grid .vl {
+      font-family: system-ui, sans-serif; font-size: 0.63rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--enum-color);
+      display: block; margin-bottom: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lesson-meta">Lesson 6 of 9 &nbsp;·&nbsp; Rust Curriculum &nbsp;·&nbsp; Type System</div>
+
+  <h1>Structs &amp; Enums</h1>
+  <p class="subtitle">Modelling data — and the enum that makes null impossible</p>
+
+  <div class="primary-source">
+    <strong>Primary sources for this lesson</strong>
+    <a href="https://doc.rust-lang.org/book/ch05-00-structs.html">The Rust Book — Ch. 5: Structs</a>
+    &nbsp;&amp;&nbsp;
+    <a href="https://doc.rust-lang.org/book/ch06-00-enums.html">Ch. 6: Enums and Pattern Matching</a>
+  </div>
+
+  <!-- ─────────────────── STRUCTS ─────────────────── -->
+
+  <h2>Part 1 — Structs</h2>
+
+  <p>Rust structs look like Go structs. Named fields, grouped into a type. The main surface difference is that methods live in a separate <code>impl</code> block rather than being declared alongside the fields.</p>
+
+  <div class="lang-label go">Go</div>
+  <pre class="lang-go"><code>type Rectangle struct {
+    Width  float64
+    Height float64
+}
+
+func (r Rectangle) Area() float64 {
+    return r.Width * r.Height
+}</code></pre>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>struct Rectangle {
+    width:  f64,
+    height: f64,
+}
+
+impl Rectangle {
+    fn area(&self) -> f64 {           // &self = shared borrow of the instance
+        self.width * self.height
+    }
+
+    fn scale(&mut self, factor: f64) { // &mut self = mutable borrow
+        self.width  *= factor;
+        self.height *= factor;
+    }
+
+    fn new(width: f64, height: f64) -> Rectangle {  // associated function (no self)
+        Rectangle { width, height }                  // field shorthand like JS
+    }
+}
+
+fn main() {
+    let mut r = Rectangle::new(10.0, 5.0);  // :: for associated functions
+    println!("{}", r.area());               // 50
+    r.scale(2.0);
+    println!("{}", r.area());               // 200
+}</code></pre>
+
+  <h3>The three <code>self</code> flavours</h3>
+
+  <table>
+    <thead><tr><th>Parameter</th><th>Meaning</th><th>When to use</th></tr></thead>
+    <tbody>
+      <tr><td><code>&amp;self</code></td><td>Shared borrow — read only</td><td>Most methods; reading fields, computing values</td></tr>
+      <tr><td><code>&amp;mut self</code></td><td>Mutable borrow — read + write</td><td>Methods that modify the struct's fields</td></tr>
+      <tr><td><code>self</code></td><td>Takes ownership — consumes the value</td><td>Builder patterns, conversions; rare in normal methods</td></tr>
+    </tbody>
+  </table>
+
+  <p>This is the ownership system you already know — it just shows up on <code>self</code>. When you call <code>r.area()</code>, Rust automatically borrows <code>r</code> as <code>&amp;self</code>. When you call <code>r.scale(2.0)</code>, Rust borrows it as <code>&amp;mut self</code> (and requires <code>r</code> to be declared <code>mut</code>).</p>
+
+  <h3>Debug printing with <code>#[derive]</code></h3>
+
+  <p>One immediately practical feature: the <code>#[derive(Debug)]</code> attribute generates a <code>println!</code>-compatible representation for free.</p>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>#[derive(Debug)]
+struct Rectangle { width: f64, height: f64 }
+
+fn main() {
+    let r = Rectangle { width: 10.0, height: 5.0 };
+    println!("{:?}",  r);   // Rectangle { width: 10.0, height: 5.0 }
+    println!("{:#?}", r);   // pretty-printed, multi-line
+    dbg!(&r);               // prints file + line + value to stderr — great for debugging
+}</code></pre>
+
+  <div class="callout">
+    <p><strong>Habit:</strong> add <code>#[derive(Debug)]</code> to every struct you create while learning. You'll want it for <code>dbg!()</code> constantly.</p>
+  </div>
+
+  <!-- ─────────────────── ENUMS ─────────────────── -->
+
+  <div class="section-break"><span>Part 2 — Enums</span></div>
+
+  <p>This is where Rust diverges most sharply from Go — and most significantly from anything in TypeScript. Go's enums are just typed integers (<code>iota</code>). Rust enums are <strong>algebraic data types</strong>: each variant can carry different data of different types.</p>
+
+  <h3>Basic enum — like Go's iota</h3>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>enum Direction { North, South, East, West }
+
+let d = Direction::North;  // :: to access variants, same as associated functions</code></pre>
+
+  <h3>Enums with data — unlike anything in Go</h3>
+
+  <p>Each variant can hold its own distinct payload. This is the feature that makes Rust enums genuinely powerful.</p>
+
+  <div class="variant-grid">
+    <div><span class="vl">unit variant</span><code>Quit</code></div>
+    <div><span class="vl">tuple variant</span><code>Move(i32, i32)</code></div>
+    <div><span class="vl">named fields</span><code>Write { text: String }</code></div>
+    <div><span class="vl">wrapping a type</span><code>ChangeColor(u8, u8, u8)</code></div>
+  </div>
+
+  <div class="lang-label en">Rust — enum with varied payloads</div>
+  <pre class="lang-enum"><code>enum Message {
+    Quit,                        // no data
+    Move { x: i32, y: i32 },    // named fields, like an inline struct
+    Write(String),               // a single String
+    ChangeColor(u8, u8, u8),     // three u8 values
+}
+
+// All four are the same type: Message.
+// You can store them in the same Vec, pass them to the same function.
+let msgs: Vec<Message> = vec![
+    Message::Move { x: 10, y: 20 },
+    Message::Write(String::from("hello")),
+    Message::Quit,
+];</code></pre>
+
+  <div class="callout ts">
+    <p><strong>TypeScript comparison:</strong> this is a discriminated union — <code>type Message = { kind: 'quit' } | { kind: 'move', x: number, y: number } | ...</code> — but enforced at the type level with no runtime <code>kind</code> field needed, and with exhaustive pattern matching built in.</p>
+  </div>
+
+  <hr>
+
+  <h2>Pattern matching with <code>match</code></h2>
+
+  <p><code>match</code> is how you work with enum values. It's exhaustive — the compiler requires you to handle every variant. This is the feature that makes "invalid states unrepresentable" a real property of your programs.</p>
+
+  <div class="lang-label en">Rust — match on an enum with data</div>
+  <pre class="lang-enum"><code>fn process(msg: Message) {
+    match msg {
+        Message::Quit => println!("quit"),
+        Message::Move { x, y } => println!("move to ({x}, {y})"),
+        Message::Write(text) => println!("write: {text}"),
+        Message::ChangeColor(r, g, b) => println!("color: {r},{g},{b}"),
+    }
+    // If you forget a variant, the compiler errors: "non-exhaustive patterns"
+}</code></pre>
+
+  <p><code>match</code> also works on integers, strings, tuples, ranges — it's a general-purpose control flow expression, not just for enums. And unlike a switch statement, every arm is an expression that can return a value:</p>
+
+  <div class="lang-label rust">Rust — match as an expression</div>
+  <pre class="lang-rust"><code>let description = match direction {
+    Direction::North => "heading north",
+    Direction::South => "heading south",
+    Direction::East | Direction::West => "heading sideways",  // | for multiple patterns
+};</code></pre>
+
+  <hr>
+
+  <h2><code>Option&lt;T&gt;</code> — Rust's answer to null</h2>
+
+  <p>Rust has no <code>null</code>. No <code>nil</code>. No <code>undefined</code>. Instead, the possibility of absence is encoded in the type system using a built-in enum:</p>
+
+  <div class="lang-label en">Rust — Option definition (from std)</div>
+  <pre class="lang-enum"><code>enum Option<T> {
+    Some(T),   // there is a value: Some(42), Some("hello"), Some(vec![1,2,3])
+    None,      // there is no value
+}</code></pre>
+
+  <p>If a function might not return a value, it returns <code>Option&lt;T&gt;</code>. If a field might be absent, it's <code>Option&lt;FieldType&gt;</code>. You cannot accidentally use an absent value — the compiler forces you to handle both arms.</p>
+
+  <div class="lang-label go">Go — nil is invisible in the type</div>
+  <pre class="lang-go"><code>func findUser(id int) *User {
+    // ... could return nil
+    // caller has no idea from the type alone — must read docs or get a panic
+}
+
+user := findUser(42)
+user.Name  // potential nil panic — not visible in the type</code></pre>
+
+  <div class="lang-label en">Rust — absence is in the type</div>
+  <pre class="lang-enum"><code>fn find_user(id: u32) -> Option<User> {
+    // ... returns Some(user) or None
+    // the caller KNOWS from the type that this might be absent
+}
+
+match find_user(42) {
+    Some(user) => println!("{}", user.name),  // user is a User here — safe
+    None       => println!("not found"),
+}
+
+// You cannot access user.name without going through the match.
+// The compiler won't let you use an Option<User> as if it were a User.</code></pre>
+
+  <div class="callout key">
+    <p><strong>The shift:</strong> in Go and TypeScript, null/nil/undefined are values that any pointer or reference type can silently hold. In Rust, absence is a <em>different type</em> — <code>Option&lt;User&gt;</code> is not a <code>User</code>. The type system makes null-safety automatic rather than opt-in.</p>
+  </div>
+
+  <h3>Common Option methods — avoiding verbose match every time</h3>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>let maybe: Option<i32> = Some(5);
+
+// unwrap_or: get the value or a default
+let x = maybe.unwrap_or(0);        // 5  (or 0 if None)
+
+// map: transform the inner value if Some, leave None alone
+let doubled = maybe.map(|v| v * 2); // Some(10)
+
+// is_some / is_none: boolean checks
+if maybe.is_some() { println!("has a value"); }
+
+// unwrap: get the value, panic if None — use only when you're certain
+let x = maybe.unwrap();             // 5, or panics if None</code></pre>
+
+  <div class="callout warn">
+    <p><strong>Avoid <code>.unwrap()</code> in production code.</strong> It panics on <code>None</code> — the runtime equivalent of a nil panic. Use <code>.unwrap_or()</code>, <code>.map()</code>, or pattern matching. Lesson 8 covers the full error handling story with <code>Result</code>.</p>
+  </div>
+
+  <h3><code>if let</code> — concise single-variant matching</h3>
+
+  <p>When you only care about one variant and want to ignore the rest, <code>if let</code> is less ceremony than a full <code>match</code>:</p>
+
+  <div class="lang-label rust">Rust</div>
+  <pre class="lang-rust"><code>let maybe = Some(42);
+
+// verbose match:
+match maybe {
+    Some(v) => println!("{v}"),
+    None    => {}           // must handle this arm even though you don't care
+}
+
+// concise if let:
+if let Some(v) = maybe {
+    println!("{v}");        // only runs if it's Some
+}                           // None is silently ignored — intentional here</code></pre>
+
+  <hr>
+
+  <h2>Putting it together — a small model</h2>
+
+  <div class="lang-label rust">Rust — struct + enum + match working together</div>
+  <pre class="lang-rust"><code>#[derive(Debug)]
+struct User {
+    name:  String,
+    email: Option<String>,   // email might not be set
+}
+
+impl User {
+    fn new(name: &str) -> User {
+        User { name: name.to_string(), email: None }
+    }
+
+    fn with_email(mut self, email: &str) -> User {   // builder pattern
+        self.email = Some(email.to_string());
+        self
+    }
+
+    fn contact_info(&self) -> String {
+        match &self.email {
+            Some(e) => format!("{} <{}>", self.name, e),
+            None    => self.name.clone(),
+        }
+    }
+}
+
+fn main() {
+    let u = User::new("Alice").with_email("alice@example.com");
+    println!("{}", u.contact_info());   // Alice <alice@example.com>
+
+    let u2 = User::new("Bob");
+    println!("{}", u2.contact_info());  // Bob
+}</code></pre>
+
+  <hr>
+
+  <h2>Quiz — no looking back</h2>
+
+  <div class="quiz">
+    <h3>7 questions</h3>
+
+    <!-- Q1 -->
+    <div class="quiz-question">
+      <p>1. In Rust, where do struct methods live?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q1" value="a"> inside the struct block, alongside the field definitions</label></li>
+        <li><label><input type="radio" name="q1" value="b"> in a separate <code>impl StructName { }</code> block</label></li>
+        <li><label><input type="radio" name="q1" value="c"> in a trait that the struct automatically implements</label></li>
+        <li><label><input type="radio" name="q1" value="d"> as free functions with the struct name as a prefix</label></li>
+      </ul>
+      <div class="feedback correct" id="q1-correct">Correct. Methods live in impl blocks — separate from the struct definition. A struct can have multiple impl blocks (useful for organising large types, and required when implementing traits). This separation is a deliberate design choice: data and behaviour are decoupled at the syntax level.</div>
+      <div class="feedback wrong" id="q1-wrong">Rust separates data (struct fields) from behaviour (impl blocks). Methods go in impl StructName { }. This is different from Go, where methods are defined anywhere with a receiver, and from TypeScript classes, where methods are inline. A type can have multiple impl blocks.</div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="quiz-question">
+      <p>2. A method takes <code>&amp;mut self</code>. What does the caller need to do?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q2" value="a"> declare the variable with <code>let mut</code></label></li>
+        <li><label><input type="radio" name="q2" value="b"> pass a raw pointer with <code>*mut</code></label></li>
+        <li><label><input type="radio" name="q2" value="c"> nothing — Rust borrows mutably automatically</label></li>
+        <li><label><input type="radio" name="q2" value="d"> clone the value before calling</label></li>
+      </ul>
+      <div class="feedback correct" id="q2-correct">Correct. To call a &mut self method, the variable must be declared mut — e.g. let mut r = Rectangle::new(...). Rust then auto-borrows it as &mut self for the call. If the variable isn't mut, the compiler rejects the call: "cannot borrow as mutable."</div>
+      <div class="feedback wrong" id="q2-wrong">The caller must declare the variable with let mut. Rust will automatically borrow it as &mut self for the call, but only if mutability was declared. This flows directly from the ownership system: you can only have a mutable borrow if the binding itself is mutable.</div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="quiz-question">
+      <p>3. What makes Rust enums fundamentally different from Go's <code>iota</code> enums?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q3" value="a"> Rust enum variants can each carry different data of different types</label></li>
+        <li><label><input type="radio" name="q3" value="b"> Rust enums support inheritance between variants</label></li>
+        <li><label><input type="radio" name="q3" value="c"> Rust enums are stored as strings rather than integers</label></li>
+        <li><label><input type="radio" name="q3" value="d"> Rust enums can only have a maximum of 256 variants</label></li>
+      </ul>
+      <div class="feedback correct" id="q3-correct">Correct. Go's iota enums are just typed integers — the variants are constants with no data attached. Rust enum variants are algebraic: Quit carries nothing, Move { x, y } carries two integers, Write(String) carries a String. They're all the same type, but each variant has its own shape. This is what TypeScript calls a discriminated union.</div>
+      <div class="feedback wrong" id="q3-wrong">Rust enum variants can each carry different data — zero, named fields, tuple fields, or wrapped types. Go's iota enum variants are bare integer constants with no payload. This single difference makes Rust enums dramatically more expressive for modelling domain state.</div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="quiz-question">
+      <p>4. What happens if you <code>match</code> an enum but forget to handle one variant?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q4" value="a"> the unhandled variant is silently ignored at runtime</label></li>
+        <li><label><input type="radio" name="q4" value="b"> it panics at runtime when that variant is encountered</label></li>
+        <li><label><input type="radio" name="q4" value="c"> the compiler rejects it — match must be exhaustive</label></li>
+        <li><label><input type="radio" name="q4" value="d"> a warning is emitted but the code compiles</label></li>
+      </ul>
+      <div class="feedback correct" id="q4-correct">Correct. match is exhaustive by requirement — the compiler errors with "non-exhaustive patterns" if any variant is missing. This is what makes "invalid states unrepresentable" a real guarantee: you can't add a new variant to an enum without updating every match that covers it, ensuring all code paths handle all states.</div>
+      <div class="feedback wrong" id="q4-wrong">Compile error — not a runtime panic, not a warning. The compiler checks exhaustiveness statically. This is one of Rust's most valuable features: adding a variant to an enum causes every match on that enum to fail compilation until updated. Unhandled states are impossible to ship.</div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="quiz-question">
+      <p>5. Why can't you access a field on an <code>Option&lt;User&gt;</code> directly, the way you'd access a field on a <code>*User</code> in Go?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q5" value="a"> Option is a reference type that needs dereferencing first</label></li>
+        <li><label><input type="radio" name="q5" value="b"> Option&lt;User&gt; is a different type from User — the compiler requires you to handle both Some and None first</label></li>
+        <li><label><input type="radio" name="q5" value="c"> you need to call .to_user() to unwrap the Option</label></li>
+        <li><label><input type="radio" name="q5" value="d"> field access on enums is reserved for unsafe code</label></li>
+      </ul>
+      <div class="feedback correct" id="q5-correct">Correct. Option&lt;User&gt; and User are distinct types. The compiler will not let you use an Option as if it were its inner type — you must pattern match (or use methods like .map() / .unwrap_or()) to get a User out. This is what makes null safety automatic: there's no way to accidentally skip the None check.</div>
+      <div class="feedback wrong" id="q5-wrong">Option&lt;User&gt; is a distinct type from User. You can't call user.name on an Option&lt;User&gt; any more than you can call methods on an i32 that you wanted to be a String. The type system enforces the None check — you must match or use Option methods to extract the inner value.</div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="quiz-question">
+      <p>6. When should you use <code>if let</code> instead of <code>match</code>?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q6" value="a"> always — if let is faster than match</label></li>
+        <li><label><input type="radio" name="q6" value="b"> when you only care about one variant and want to concisely ignore the rest</label></li>
+        <li><label><input type="radio" name="q6" value="c"> when the enum has more than four variants</label></li>
+        <li><label><input type="radio" name="q6" value="d"> only with Option — if let doesn't work on custom enums</label></li>
+      </ul>
+      <div class="feedback correct" id="q6-correct">Correct. if let is syntactic sugar for a match with one interesting arm and a catch-all that does nothing. Use match when you care about multiple (or all) variants. Use if let when you only want to act on one and intentionally ignore the others. Works on any enum, not just Option.</div>
+      <div class="feedback wrong" id="q6-wrong">if let is concise syntax for "match this one pattern, ignore everything else." Use it when only one variant matters to you and you're deliberately ignoring the rest. It works on any enum (not just Option) and there's no performance difference from match.</div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="quiz-question">
+      <p>7. Why should you avoid <code>.unwrap()</code> on <code>Option</code> in production code?</p>
+      <ul class="options">
+        <li><label><input type="radio" name="q7" value="a"> .unwrap() moves the value out, making the Option unusable afterward</label></li>
+        <li><label><input type="radio" name="q7" value="b"> .unwrap() panics if the value is None — the runtime equivalent of a nil crash</label></li>
+        <li><label><input type="radio" name="q7" value="c"> .unwrap() is only available in debug builds</label></li>
+        <li><label><input type="radio" name="q7" value="d"> .unwrap() clones the inner value, causing a hidden allocation</label></li>
+      </ul>
+      <div class="feedback correct" id="q7-correct">Correct. .unwrap() on None calls panic!() — the program crashes with an unrecoverable error. It's useful in tests, prototypes, and "this provably can't be None" situations where you'd rather panic than add boilerplate. In production code, prefer .unwrap_or(), .map(), or the ? operator (Lesson 8) to handle None gracefully.</div>
+      <div class="feedback wrong" id="q7-wrong">.unwrap() panics on None — same outcome as a nil pointer dereference in Go, just with a clearer error message. It moves the value out (so the Option is consumed), but the real concern is the panic. Prefer .unwrap_or(), .map(), or ? in production paths.</div>
+    </div>
+
+    <button class="quiz-submit" onclick="submitQuiz()">Check answers</button>
+    <div class="score-display" id="score"></div>
+  </div>
+
+  <hr>
+
+  <h2>What's next</h2>
+
+  <p>Structs and enums are Rust's data modelling tools. The next question is behaviour: how do you express that a type can do something — and how do you write code that works across multiple types? That's <strong>traits</strong>. They'll feel immediately familiar if you know Go interfaces, with one meaningful twist: traits are implemented explicitly, and the compiler checks them at compile time with far more precision.</p>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher in the chat. The enum-with-data concept is worth exploring further if you're seeing connections to TypeScript discriminated unions or want to see more domain modelling examples.
+  </div>
+
+  <div class="nav">
+    <a href="0005-lifetimes.html">← Lesson 5: Lifetimes</a>
+    <a href="0007-traits.html">Lesson 7: Traits →</a>
+  </div>
+
+</div>
+
+<script>
+  const answers = { q1:'b', q2:'a', q3:'a', q4:'c', q5:'b', q6:'b', q7:'b' };
+  function submitQuiz() {
+    let score = 0;
+    const total = Object.keys(answers).length;
+    for (const [q, correct] of Object.entries(answers)) {
+      const sel = document.querySelector(`input[name="${q}"]:checked`);
+      const ok  = document.getElementById(`${q}-correct`);
+      const bad = document.getElementById(`${q}-wrong`);
+      if (ok)  ok.style.display  = 'none';
+      if (bad) bad.style.display = 'none';
+      if (!sel) continue;
+      if (sel.value === correct) { score++; if (ok)  ok.style.display  = 'block'; }
+      else                       {          if (bad) bad.style.display = 'block'; }
+    }
+    const el = document.getElementById('score');
+    el.style.display = 'block';
+    if (score === total) {
+      el.textContent = `${score} / ${total} — perfect. The type system is opening up.`;
+      el.style.color = '#166534';
+    } else if (score >= 5) {
+      el.textContent = `${score} / ${total} — solid. Re-read the explanations for what you missed.`;
+    } else {
+      el.textContent = `${score} / ${total} — re-read the lesson, especially the enum and Option sections.`;
+      el.style.color = '#991b1b';
+    }
+  }
+</script>
+</body>
+</html>
